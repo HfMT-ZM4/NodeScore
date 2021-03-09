@@ -1,0 +1,24 @@
+.NS_Score-rect {
+    fill: white;
+}
+.NS_Part-name {
+    fill: black;
+    font-size: 16px;
+    font-family: Arial;
+    text-anchor: end;
+}
+.NS_Part-corner {
+    stroke: rgb(206, 206, 206);
+    fill: none;
+}
+
+.NS_Staff-stafflines {
+    stroke: black;
+    fill: none;
+}
+
+.NS_Clef-clef {
+    fill: black;
+    font-size: 24px;
+    font-family: Bravura;
+}

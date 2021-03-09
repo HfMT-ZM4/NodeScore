@@ -1,0 +1,183 @@
+{
+    "class": "NS_Score",
+    "id": "score",
+    "x": 100,
+    "y": 100,
+    "width": 800,
+    "height": 600,
+    "contents": [
+        {
+            "class": "NS_Part",
+            "partname": "Part 1",
+            "index": 0,
+            "contents": [
+                {
+                    "class": "NS_Staff",
+                    "stafflines": [
+                        -2,
+                        -1,
+                        0,
+                        1,
+                        2
+                    ],
+                    "length": 500,
+                    "x": 200,
+                    "y": 200,
+                    "contents": [
+                        {
+                            "class": "NS_Clef",
+                            "id": "NS_Clef_G",
+                            "clef_anchor": -1,
+                            "clef": "G"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "class": "NS_Part",
+            "id": "NS_Part_u_bcfec0de-531d-46eb-a5e6-ae60770f8484",
+            "index": 2,
+            "partname": "",
+            "x": 248,
+            "y": 400,
+            "container": "score",
+            "contents": [
+                {
+                    "class": "NS_Staff",
+                    "id": "NS_Staff_u_5f554877-0bc9-40ec-925c-bfda9c9eed5d",
+                    "stafflines": [
+                        -5,
+                        -4,
+                        -3,
+                        -2,
+                        -1,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "length": 500,
+                    "x": 200,
+                    "y": 400,
+                    "container": "NS_Part_u_bcfec0de-531d-46eb-a5e6-ae60770f8484",
+                    "contents": [
+                        {
+                            "class": "NS_Clef",
+                            "id": "NS_Clef_u_1495af5b-c017-40f9-a52f-40b541c79c29",
+                            "clef_anchor": 0,
+                            "clef": "C",
+                            "container": "NS_Staff_u_5f554877-0bc9-40ec-925c-bfda9c9eed5d"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "class": "NS_Part",
+            "id": "NS_Part_u_ae8bd06f-cf43-4d38-905f-47c44bcd24c5",
+            "index": 3,
+            "partname": "",
+            "x": 210,
+            "y": 500,
+            "container": "score",
+            "contents": [
+                {
+                    "class": "NS_Staff",
+                    "id": "NS_Staff_u_fbb348ea-9c54-45f6-a210-fdbdc6673065",
+                    "stafflines": [
+                        -2,
+                        -1,
+                        0,
+                        1,
+                        2
+                    ],
+                    "length": 500,
+                    "x": 200,
+                    "y": 500,
+                    "container": "NS_Part_u_ae8bd06f-cf43-4d38-905f-47c44bcd24c5",
+                    "contents": [
+                        {
+                            "class": "NS_Clef",
+                            "id": "NS_Clef_u_76c3535e-1af6-4191-974e-1abc02bbd2a4",
+                            "clef_anchor": 1,
+                            "clef": "C",
+                            "container": "NS_Staff_u_fbb348ea-9c54-45f6-a210-fdbdc6673065"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "class": "NS_Part",
+            "id": "NS_Part_u_9d079273-acd2-43cb-9f83-116721bc9f77",
+            "index": 4,
+            "partname": "",
+            "x": 191,
+            "y": 600,
+            "container": "score",
+            "contents": [
+                {
+                    "class": "NS_Staff",
+                    "id": "NS_Staff_u_c5cfe901-0f9f-4457-915e-00b2a2a4d698",
+                    "stafflines": [
+                        -2,
+                        -1,
+                        0,
+                        1,
+                        2
+                    ],
+                    "length": 500,
+                    "x": 200,
+                    "y": 600,
+                    "container": "NS_Part_u_9d079273-acd2-43cb-9f83-116721bc9f77",
+                    "contents": [
+                        {
+                            "class": "NS_Clef",
+                            "id": "NS_Clef_u_ecc41059-a687-4c5e-bcd0-c925a856db20",
+                            "clef_anchor": 1,
+                            "clef": "F",
+                            "container": "NS_Staff_u_c5cfe901-0f9f-4457-915e-00b2a2a4d698"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "class": "NS_Part",
+            "id": "NS_Part_u_1a3ea288-3f50-44bc-b900-eaae379dacba",
+            "index": 1,
+            "partname": "",
+            "x": 216,
+            "y": 300,
+            "container": "score",
+            "contents": [
+                {
+                    "class": "NS_Staff",
+                    "id": "NS_Staff_u_703f4160-9ee5-4f57-9096-6609ddfd00c7",
+                    "stafflines": [
+                        -2,
+                        -1,
+                        0,
+                        1,
+                        2
+                    ],
+                    "length": 500,
+                    "x": 200,
+                    "y": 300,
+                    "container": "NS_Part_u_1a3ea288-3f50-44bc-b900-eaae379dacba",
+                    "contents": [
+                        {
+                            "class": "NS_Clef",
+                            "id": "NS_Clef_u_0b9d1d79-d03b-46d8-a810-83caa9f09a0e",
+                            "clef_anchor": -1,
+                            "clef": "G8vb",
+                            "container": "NS_Staff_u_703f4160-9ee5-4f57-9096-6609ddfd00c7"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
