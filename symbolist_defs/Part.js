@@ -1,11 +1,11 @@
 const Template = require(__symbolist_dirname + '/lib/SymbolTemplate') 
 
-class NS_Part extends Template.SymbolBase 
+class Part extends Template.SymbolBase 
 {
     constructor() {
         super();
-        this.class = "NS_Part";
-        this.palette = ["NS_Staff"];
+        this.class = "Part";
+        this.palette = ["Staff"];
     }
 
 
@@ -16,9 +16,7 @@ class NS_Part extends Template.SymbolBase
                 class: this.class,
                 id : `${this.class}-0`,
                 index : 0,
-                partname : "",
-                x: 0,
-                y: 0
+                partname : ""
             },
             
             view: {
@@ -45,7 +43,7 @@ class NS_Part extends Template.SymbolBase
         return [
             {
                 new: "text",
-                class: 'NS_Part-name',
+                class: 'Part-name',
                 id: `${params.id}-name`,
                 x: params.x-5,
                 y: params.y+3,
@@ -53,7 +51,7 @@ class NS_Part extends Template.SymbolBase
             },
             {
                 new: "path",
-                class: 'NS_Part-corner',
+                class: 'Part-corner',
                 id: `${params.id}-corner`,
                 d: path
             }
@@ -70,7 +68,7 @@ class NS_Part extends Template.SymbolBase
     
     getElementViewParams(element) {
 
-        const text = element.querySelector('.display .NS_Part-name');
+        const text = element.querySelector('.display .Part-name');
         const x = parseFloat(text.getAttribute('x'))-5;
         const y = parseFloat(text.getAttribute('y'))+3;
 
@@ -136,12 +134,12 @@ class NS_Part extends Template.SymbolBase
 
 }
 
-class NS_Part_IO extends Template.IO_SymbolBase
+class Part_IO extends Template.IO_SymbolBase
 {
     constructor()
     {
         super();
-        this.class = "NS_Part";
+        this.class = "Part";
     }
     
 }
@@ -149,7 +147,7 @@ class NS_Part_IO extends Template.IO_SymbolBase
 
 
 module.exports = {
-    ui_def: NS_Part,
-    io_def: NS_Part_IO    
+    ui_def: Part,
+    io_def: Part_IO    
 }
 

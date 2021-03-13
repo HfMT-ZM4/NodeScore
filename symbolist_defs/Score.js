@@ -1,10 +1,10 @@
 const Template = require(__symbolist_dirname + '/lib/SymbolTemplate');
 
-class NS_Score extends Template.SymbolBase {
+class Score extends Template.SymbolBase {
     constructor() {
         super();
-        this.class = "NS_Score";
-        this.palette = ["NS_Part"];
+        this.class = "Score";
+        this.palette = ["Part"];
 
         this.margin = 20;
         this.half_margin = this.margin / 2.;
@@ -30,8 +30,9 @@ class NS_Score extends Template.SymbolBase {
                 y: 100,
                 height: 20,
                 width: 20
-            },
-
+            }
+            
+            /*,
             children: {
                 data: {
                     index: 0,
@@ -42,6 +43,7 @@ class NS_Score extends Template.SymbolBase {
                     y: 0
                 }
             }
+            */
         }
     }
 
@@ -54,7 +56,7 @@ class NS_Score extends Template.SymbolBase {
         return {
             new: "rect",
             id: `${params.id}-rect`,
-            class: 'NS_Score-rect',
+            class: 'Score-rect',
             x: params.x,
             y: params.y,
             height: params.height,
@@ -72,7 +74,7 @@ class NS_Score extends Template.SymbolBase {
 
     getElementViewParams(element) {
 
-        const rect = element.querySelector('.display .NS_Score-rect');
+        const rect = element.querySelector('.display .Score-rect');
 
         return {
             id: element.id,
@@ -107,7 +109,7 @@ class NS_Score extends Template.SymbolBase {
             key: "svg",
             val: this.display({
                 ...this.structs.view,
-                id: `NS_Score-palette-icon`,
+                id: `Score-palette-icon`,
                 class: this.class
             })
         }
@@ -119,10 +121,15 @@ class NS_Score extends Template.SymbolBase {
      * @param {Object} child_data child data object, requesting information about where to put itself
      */
     childDataToViewParams(this_element, child_data) {
+        let container = ui_api.getContainerForElement(this_element);
+        let parentDef = ui_api.getDefForElement(container);
+        //return parentDef.childDataToViewParams(container, child_data);
         const x_offset = 100;
         const y_offset = 100;
         
-        //const x_offset = parseFloat(this_element.getAttribute('data-x'));
+        const x_offset = parseFloat(this_element.dataset.x);
+        const y_offset = parseFloat(this_element.dataset.y);
+        
         //const y_offset = parseFloat(this_element.getAttribute('data-y'));
         if (ui_api.hasParam(child_data, ["index", "partname"])) {
             child_data.partname = `Part ${child_data.index+1}`;
@@ -178,17 +185,17 @@ class NS_Score extends Template.SymbolBase {
 
 }
 
-class NS_Score_IO extends Template.IO_SymbolBase {
+class Score_IO extends Template.IO_SymbolBase {
     constructor() {
         super();
-        this.class = "NS_Score";
+        this.class = "Score";
     }
 
 }
 
 
 module.exports = {
-    ui_def: NS_Score,
-    io_def: NS_Score_IO
+    ui_def: Score,
+    io_def: Score_IO
 }
 
