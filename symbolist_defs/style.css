@@ -1,11 +1,25 @@
+.Global-musicfont {
+    font-family: Bravura;
+    font-size: 24;
+}
+
+.Global-textfont {
+    font-family: Avenir;
+    fill: black;
+}
+
 .Score-rect {
     fill: white;
 }
+
+.Score-title {
+    font-size: 18px;
+}
+
 .Part-name {
-    fill: black;
     font-size: 16px;
-    font-family: Arial;
     text-anchor: end;
+    dominant-baseline: middle;
 }
 .Part-corner {
     stroke: rgb(206, 206, 206);
@@ -14,11 +28,8 @@
 
 .Staff-stafflines {
     stroke: black;
-    fill: none;
 }
 
 .Clef-clef {
     fill: black;
-    font-size: 24px;
-    font-family: Bravura;
 }

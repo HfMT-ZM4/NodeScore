@@ -1,10 +1,16 @@
 {
     "class" : "Score",
-    "id" : "score",
+    "id" : "score_init",
     "x" : 100,
-    "y" : 100,
+    "y" : 40,
     "width" : 1000,
-    "height" : 400,
-    "contents" : []
+    "height" : 500,
+    "indent" : 100,
+    "title" : "Score Title",
+    "contents" : [{
+        "class" : "Part",
+        "id" : "part_init",
+        "partName" : "Example Part",
+        "contents" : []
     }]
 }

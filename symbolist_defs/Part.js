@@ -4,8 +4,9 @@ class Part extends Template.SymbolBase
 {
     constructor() {
         super();
-        this.class = "Part";
-        this.palette = ["Staff"];
+        this.class = 'Part';
+        this.palette = ['Staff'];
+        this.cornerSize = 5;
     }
 
 
@@ -15,21 +16,23 @@ class Part extends Template.SymbolBase
             data: {
                 class: this.class,
                 id : `${this.class}-0`,
-                index : 0,
-                partname : ""
+                partName : 'Part'
             },
             
             view: {
                 class: this.class,
                 id: `${this.class}-0`, 
-                x: 0,
-                y: 0,
-                partname: ""
-            },
+                x: 0, // left
+                y: 0, // top
+                height: 100,
+                partName: ''
+            }
+            /*,
             
             children: {
                 stafflines: [-2, -1, 0, 1, 2]
             }
+            */
         }
     }
 
@@ -38,28 +41,47 @@ class Part extends Template.SymbolBase
     display(params) {
 
         ui_api.hasParam(params, Object.keys(this.structs.view) );
-        
-        let path = `M ${params.x + 20} ${params.y} H ${params.x} M ${params.x} ${params.y-5} V ${params.y+5}`;
         return [
             {
-                new: "text",
-                class: 'Part-name',
+                new: 'text',
+                class: 'Part-name Global-textfont',
                 id: `${params.id}-name`,
                 x: params.x-5,
-                y: params.y+3,
-                text: params.partname
+                y: params.y + params.height / 2,
+                text: params.partName
             },
             {
-                new: "path",
+                new: 'line',
                 class: 'Part-corner',
-                id: `${params.id}-corner`,
-                d: path
+                id: `${params.id}-cornerHorizontalTop`,
+                x1: params.x,
+                x2: params.x + this.cornerSize,
+                y1: params.y,
+                y2: params.y
+            },
+            {
+                new: 'line',
+                class: 'Part-corner',
+                id: `${params.id}-cornerHorizontalBottom`,
+                x1: params.x,
+                x2: params.x + this.cornerSize,
+                y1: params.y + params.height,
+                y2: params.y + params.height
+            },
+            {
+                new: 'line',
+                class: 'Part-corner',
+                id: `${params.id}-cornerVertical`,
+                x1: params.x,
+                x2: params.x,
+                y1: params.y,
+                y2: params.y + params.height
             }
         ]
 
         /**
          * note that we are returning the drawsocket def that will be
-         * displayed in the "view" group
+         * displayed in the 'view' group
          * the top level element of the symbol has the root id
          * so here we need to make sure that the id is different
          */
@@ -68,14 +90,19 @@ class Part extends Template.SymbolBase
     
     getElementViewParams(element) {
 
-        const text = element.querySelector('.display .Part-name');
-        const x = parseFloat(text.getAttribute('x'))-5;
-        const y = parseFloat(text.getAttribute('y'))+3;
+        const vLine = element.querySelector(`#${element.id}-cornerVertical`);
+        const nameText = element.querySelector('.display .Part-name');
+        const x = parseFloat(vLine.getAttribute('x1'));
+        const y = parseFloat(vLine.getAttribute('y1'));
+        const height = parseFloat(vLine.getAttribute('y2')) - y;
+        const partName = nameText.getAttribute('child');
 
         return {
             id: element.id,
             x,
-            y
+            y,
+            height,
+            partName
         }
 
     }
@@ -83,14 +110,14 @@ class Part extends Template.SymbolBase
 
     getPaletteIcon() {
         return {
-            key: "svg",
+            key: 'svg',
             val: this.display({
                 id: `${this.class}-palette-icon`,
                 class: this.class,
-                x: 20,
-                y: 20,
-                partname: "p",
-                index: 0
+                x: 30,
+                y: 0,
+                height : 40,
+                partName: 'p'
             })
         }
     }
@@ -101,33 +128,11 @@ class Part extends Template.SymbolBase
      * @param {Object} child_data child data object, requesting information about where to put itself
      */
     childDataToViewParams(this_element, child_data) {
-        return {
-            x: child_data.x,
-            y: child_data.y
-        }
+        return child_data;
     }
-
-    /**
-     * 
-     * @param {Element} this_element instance of this element
-     * @param {Object} child_viewParams child data object, requesting information about where to put itself
-     */
     
     childViewParamsToData(this_element, child_viewParams) {
-
-        if (ui_api.hasParam(child_viewParams, ["x", "y"])) {
-            const x_offset = 200;
-            const y_offset = 200;
-
-            //const x = parseFloat(this_element.getAttribute('data-x'));
-            //const y = parseFloat(this_element.getAttribute('data-y'));
-            const index = parseInt(this_element.getAttribute('data-index'));
-
-            return {
-                x: x_offset,
-                y: y_offset + 100 * index
-            }
-        }
+        
 
     }
     
@@ -139,7 +144,7 @@ class Part_IO extends Template.IO_SymbolBase
     constructor()
     {
         super();
-        this.class = "Part";
+        this.class = 'Part';
     }
     
 }
