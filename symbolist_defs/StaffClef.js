@@ -1,13 +1,20 @@
 const Template = require(__symbolist_dirname + '/lib/SymbolTemplate') 
 
 
-class Staff extends Template.SymbolBase 
+class StaffClef extends Template.SymbolBase 
 {
     constructor() {
         super();
-        this.class = "Staff";
-        this.palette = ["Clef", "TextSymbol"];
-        this.staffLineSpacing = 24 / 4;
+        this.class = 'StaffClef';
+        this.palette = [];
+        this.fontSize = 24;
+        this.clefDictionary = {
+            G: '&#xE050',
+            C: '&#xE05C',
+            F: '&#xE062',
+            G8vb: '&#xE052',
+            perc: '&#xE069'
+        }
     }
 
 
@@ -17,19 +24,24 @@ class Staff extends Template.SymbolBase
             data: {
                 class: this.class,
                 id : `${this.class}-0`,
-                stafflines : [-2, -1, 0, 1, 2],
-                length : 500,
-                x: 100,
-                y: 100
+                staff_line : [-2, -1, 0, 1, 2],
+                clef: 'G',
+                clef_anchor: -1,
+                clef_visible: false,
+                key_signature: [],
+                key_signature_visible: false
             },
             
             view: {
                 class: this.class,
                 id: `${this.class}-0`, 
-                stafflines : [0],
+                staff_line : [0],
+                staff_line_width: 100,
                 x: 100,
-                length: 500,
-                y: 100
+                y: 100,
+                clef: 'G',
+                clef_anchor: -1,
+                clef_visible: false
             },
             
             children: {
@@ -46,86 +58,113 @@ class Staff extends Template.SymbolBase
     drag(element, pos){}
 
     display(params) {
-
+        console.log('params', params);
         ui_api.hasParam(params, Object.keys(this.structs.view) );
-        let stafflines_d = "";
-        params.stafflines.forEach(i => {
-            stafflines_d += `M ${params.x} ${params.y + i * this.staffLineSpacing} H ${params.x + params.length} `;
+        let returnArray = [];
+
+        // reference
+        returnArray.push({
+            new: 'rect',
+            class: 'StaffClef-ref',
+            id: `${params.id}-ref`,
+            x: params.x,
+            y: params.y,
+            width: params.staff_line_width,
+            height: this.fontSize
         });
-        return [
-            {
-                new: "path",
-                class: 'Staff-stafflines',
-                id: `${params.id}-stafflines`,
-                d: stafflines_d
-            }
-        ]
 
-        /**
-         * note that we are returning the drawsocket def that will be
-         * displayed in the "view" group
-         * the top level element of the symbol has the root id
-         * so here we need to make sure that the id is different
-         */
+        // staff lines
+        let staffLineGroup = {
+            new: 'g',
+            class: 'StaffClef-staff_line-group',
+            id: `${params.id}-staff_line-group`,
+            child: []
+        }
+        let staffLineSpacing = this.fontSize / 4;
+        //if (typeof(params.staff_line) == 'string') params.staff_line = JSON.parse(params.staff_line);
+        params.staff_line.forEach(i => {
+            staffLineGroup.child.push({
+                new: 'line',
+                class: 'StaffClef-staff_line',
+                id: `${params.id}-staff_line-${i}`,
+                x1: params.x,
+                x2: params.x + params.staff_line_width,
+                y1: params.y - staffLineSpacing * i,
+                y2: params.y - staffLineSpacing * i
+            });
+        });
+        returnArray.push(staffLineGroup);
 
+        // clef + keysig
+        let clefKeyGroup = {
+            new: 'g',
+            class: 'StaffClef-clef_key-group',
+            id: `${params.id}-clef_key-group`,
+            child: []
+        }
+        if (params.clef_visible) {
+            clefKeyGroup.child.push({
+                new: 'text',
+                class: 'StaffClef-clef Global-musicFont',
+                id: `${params.id}-clef`,
+                x: params.x,
+                y: params.y - staffLineSpacing * params.clef_anchor,
+                child: this.clefDictionary[params.clef]
+            });
+        }
+        returnArray.push(clefKeyGroup);
+        return returnArray;
     }
     
+    getElementViewParams(element) {
+        let ref = element.querySelector(`.StaffClef-ref`);
+        
+        let x = parseFloat(ref.getAttribute('x'));
+        let y = parseFloat(ref.getAttribute('y'));
+        let staff_line_width = parseFloat(ref.getAttribute('width'));
+        return {
+            id: element.id,
+            staff_line : JSON.parse(element.dataset.staff_line),
+            staff_line_width,
+            x,
+            y,
+            clef: element.dataset.clef,
+            clef_anchor: parseInt(element.dataset.clef),
+            clef_visible: element.dataset.clef_visible
+        }
+    }
 
     getPaletteIcon() {
         return {
-            key: "svg",
+            key: 'svg',
             val: this.display({
+                ...this.structs.view,
                 id: `${this.class}-palette-icon`,
                 class: this.class,
                 x: 5,
                 y: 20,
-                length: 30,
-                stafflines : [-2, -1, 0, 1, 2]
+                staff_line_width: 30,
+                staff_line : [-2, -1, 0, 1, 2],
+                clef_visible: false
             })
         }
     }
 
     childDataToViewParams(this_element, child_data) {
-
-        const x = parseFloat(this_element.getAttribute('data-x'));
-        const y = parseFloat(this_element.getAttribute('data-y')) - child_data.clef_anchor * this.staffLineSpacing;
-
-        const glyphs = {
-            G: "&#xE050",
-            C: "&#xE05C",
-            F: "&#xE062",
-            G8vb: "&#xE052",
-            perc: "&#xE069"
-        }
-        
-        return {
-            x,
-            y,
-            clef_glyph: glyphs[child_data.clef]
-        }
     }
 
     childViewParamsToData(this_element, child_viewParams) {
-
-        if (ui_api.hasParam(child_viewParams, ["x", "y"])) {
-            
-            const y = parseFloat(this_element.getAttribute('data-y'));
-
-            return {
-                clef_anchor: Math.round((y-child_viewParams.y)/6)
-            }
-        }
 
     }
 
 }
 
-class Staff_IO extends Template.IO_SymbolBase
+class StaffClef_IO extends Template.IO_SymbolBase
 {
     constructor()
     {
         super();
-        this.class = "Staff";
+        this.class = 'StaffClef';
     }
     
 }
@@ -133,7 +172,7 @@ class Staff_IO extends Template.IO_SymbolBase
 
 
 module.exports = {
-    ui_def: Staff,
-    io_def: Staff_IO    
+    ui_def: StaffClef,
+    io_def: StaffClef_IO    
 }
 

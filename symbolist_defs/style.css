@@ -1,9 +1,10 @@
-.Global-musicfont {
+.Global-musicFont {
     font-family: Bravura;
-    font-size: 24;
+    font-size: 24px;
+    fill: black;
 }
 
-.Global-textfont {
+.Global-textFont {
     font-family: Avenir;
     fill: black;
 }
@@ -14,6 +15,7 @@
 
 .Score-title {
     font-size: 18px;
+    dominant-baseline: hanging;
 }
 
 .Part-name {
@@ -26,10 +28,30 @@
     fill: none;
 }
 
-.Staff-stafflines {
+
+.Measure-barLine {
+    stroke: black;
+    fill: none;
+}
+.Measure-number {
+    fill: black;
+    font-size: 15px;
+}
+.Measure-ref {
+    stroke: pink;
+    stroke-opacity: 0;
+    fill: none;
+}
+
+.StaffClef-staff_line {
     stroke: black;
 }
 
-.Clef-clef {
+.StaffClef-clef {
     fill: black;
+}
+.StaffClef-ref {
+    stroke: pink;
+    stroke-opacity: 0;
+    fill: none;
 }

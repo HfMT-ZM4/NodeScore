@@ -5,7 +5,7 @@ class Part extends Template.SymbolBase
     constructor() {
         super();
         this.class = 'Part';
-        this.palette = ['Staff'];
+        this.palette = ['Measure'];
         this.cornerSize = 5;
     }
 
@@ -16,7 +16,7 @@ class Part extends Template.SymbolBase
             data: {
                 class: this.class,
                 id : `${this.class}-0`,
-                partName : 'Part'
+                part_name : 'Part'
             },
             
             view: {
@@ -25,14 +25,8 @@ class Part extends Template.SymbolBase
                 x: 0, // left
                 y: 0, // top
                 height: 100,
-                partName: ''
+                part_name: ''
             }
-            /*,
-            
-            children: {
-                stafflines: [-2, -1, 0, 1, 2]
-            }
-            */
         }
     }
 
@@ -44,11 +38,11 @@ class Part extends Template.SymbolBase
         return [
             {
                 new: 'text',
-                class: 'Part-name Global-textfont',
+                class: 'Part-name Global-textFont',
                 id: `${params.id}-name`,
                 x: params.x-5,
                 y: params.y + params.height / 2,
-                text: params.partName
+                text: params.part_name
             },
             {
                 new: 'line',
@@ -87,6 +81,41 @@ class Part extends Template.SymbolBase
          */
 
     }
+
+    fromData(dataObj, container, preview = false)
+    {
+        //console.log('container', container, dataObj);
+        // merging with defaults in case the user forgot to include something
+        const data_union = {
+            ...this.structs.data,
+            ...dataObj
+        };
+        const viewParams = this.dataToViewParams(data_union, container);
+        const viewObj = this.display(viewParams);  
+        const drawObj = (preview ? 
+            ui_api.svgPreviewFromViewAndData(viewObj, data_union) : 
+            ui_api.svgFromViewAndData(viewObj, data_union) );
+        ui_api.drawsocketInput( drawObj );
+        
+        /*
+        //automatically create a new measure
+        const thisElement = document.getElementById(dataObj.id);
+        const measureInit = {
+            class: 'Measure',
+            id : `${dataObj.id}-defaultMeasure`,
+            timeSignature : [4, 4],
+            barLineType: 'single',
+            repeatStart: false,
+            repeatEnd: false
+        };
+        const measureDef = ui_api.getDef('Measure');
+        measureDef.fromData(measureInit, thisElement);
+        ui_api.sendToServer({
+            key: "data",
+            val: measureInit
+        });
+        */
+    }
     
     getElementViewParams(element) {
 
@@ -95,14 +124,16 @@ class Part extends Template.SymbolBase
         const x = parseFloat(vLine.getAttribute('x1'));
         const y = parseFloat(vLine.getAttribute('y1'));
         const height = parseFloat(vLine.getAttribute('y2')) - y;
-        const partName = nameText.getAttribute('child');
+        const part_name = nameText.innerHTML;
+        //console.log('NameText', nameText);
+        //console.log('innerhtml', part_name);
 
         return {
             id: element.id,
             x,
             y,
             height,
-            partName
+            part_name
         }
 
     }
@@ -117,7 +148,7 @@ class Part extends Template.SymbolBase
                 x: 30,
                 y: 0,
                 height : 40,
-                partName: 'p'
+                part_name: 'p'
             })
         }
     }
@@ -128,12 +159,16 @@ class Part extends Template.SymbolBase
      * @param {Object} child_data child data object, requesting information about where to put itself
      */
     childDataToViewParams(this_element, child_data) {
-        return child_data;
+        const viewParams = this.getElementViewParams(this_element);
+
+        return {
+            x: viewParams.x,
+            y: viewParams.y + viewParams.height / 2
+        }
     }
     
     childViewParamsToData(this_element, child_viewParams) {
         
-
     }
     
 

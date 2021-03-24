@@ -1,16 +1,26 @@
 {
     "class" : "Score",
-    "id" : "score_init",
+    "id" : "Score_init",
     "x" : 100,
     "y" : 40,
     "width" : 1000,
     "height" : 500,
     "indent" : 100,
-    "title" : "Score Title",
+    "title" : "Example Score",
     "contents" : [{
         "class" : "Part",
-        "id" : "part_init",
-        "partName" : "Example Part",
-        "contents" : []
+        "id" : "Part_init",
+        "part_name" : "Example Part",
+        "contents" : [{
+            "class" : "Measure",
+            "id" : "Measure_init",
+            "time_signature_visible" : true,
+            "contents" : [{
+                "class" : "StaffClef",
+                "id" : "StaffClef_init",
+                "clef_visible" : true,
+                "contents" : []
+            }]
+        }]
     }]
 }

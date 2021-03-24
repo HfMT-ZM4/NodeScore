@@ -18,11 +18,11 @@ class Score extends Template.SymbolBase {
                 width: 800,
                 height: 600,
                 title: 'Score Title',
-                leftMargin: 40,
-                rightMargin: 40,
-                topMargin: 60,
-                bottomMargin: 40,
-                partMargin: 20,
+                margin_left: 40,
+                margin_right: 40,
+                margin_top: 40,
+                margin_bottom: 40,
+                margin_part: 20,
                 indent: 50
             },
 
@@ -34,35 +34,31 @@ class Score extends Template.SymbolBase {
                 height: 30,
                 width: 30,
                 title: '',
-                leftMargin: 0,
-                rightMargin: 0,
-                topMargin: 0,
-                bottomMargin: 0,
-                partMargin: 20,
+                margin_left: 0,
+                margin_right: 0,
+                margin_top: 0,
+                margin_bottom: 0,
+                margin_part: 20,
                 indent: 20
-            }
+            },
             
-            /*,
+            
             children: {
                 data: {
-                    index: 0,
-                    partname: ''
                 },
                 view: {
                     x: 0,
                     y: 0
                 }
             }
-            */
+            
         }
     }
 
     drag(element, pos) { }
 
     display(params) {
-
         ui_api.hasParam(params, Object.keys(this.structs.view));
-
         return [{
             new: 'rect',
             id: `${params.id}-rect`,
@@ -73,10 +69,10 @@ class Score extends Template.SymbolBase {
             width: params.width
         }, {
             new: 'text',
-            id: `${params.id}-rect`,
-            class: 'Score-title Global-textfont',
-            x: params.x + params.leftMargin,
-            y: params.y + params.topMargin,
+            id: `${params.id}-title`,
+            class: 'Score-title Global-textFont',
+            x: params.x + params.margin_left,
+            y: params.y + params.margin_top,
             child: params.title
         }];
 
@@ -102,6 +98,7 @@ class Score extends Template.SymbolBase {
 
     dataToViewParams(data, container) {
 
+        //console.log('dataToViewParams in Score');
         let viewInData = ui_api.filterByKeys(data, Object.keys(this.structs.view));
 
         return {
@@ -118,7 +115,7 @@ class Score extends Template.SymbolBase {
             val: {
                 new: 'text',
                 child: 'S',
-                class: 'Score-title Global-textfont',
+                class: 'Score-title Global-textFont',
                 x: 20,
                 y: 30,
                 'text-anchor': 'center'
@@ -132,21 +129,26 @@ class Score extends Template.SymbolBase {
      * @param {Object} child_data child data object, requesting information about where to put itself
      */
     childDataToViewParams(this_element, child_data) {
-        const x = parseFloat(this_element.dataset.x) + parseFloat(this_element.dataset.leftMargin) + parseFloat(this_element.dataset.indent);
+        const x = parseFloat(this_element.dataset.x) + parseFloat(this_element.dataset.margin_left) + parseFloat(this_element.dataset.indent);
 
         const children = this_element.querySelector('.contents').children;
-        let y = parseFloat(this_element.dataset.partMargin);
+        let y = parseFloat(this_element.dataset.margin_part);
         
         if ( children.length > 0 ) {
             const lastChild = children[children.length-1];
             const lastChildBottom = lastChild.querySelector(`#${lastChild.id}-cornerVertical`).getAttribute('y2');
             y += parseFloat(lastChildBottom);
+
+            const thisChild = this_element.querySelector(`#${child_data.id}`);
+            // if the child already exists
+            if (thisChild) {
+                y -= ui_api.getBBoxAdjusted(thisChild).height + parseFloat(this_element.dataset.margin_part);
+            }
         }
         else  {
             const titleText = this_element.querySelector('.Score-title');
             y += ui_api.getBBoxAdjusted(titleText).bottom;
         }
-
         return {
             x, 
             y
@@ -160,6 +162,8 @@ class Score extends Template.SymbolBase {
         //return parentDef.childDataToViewParams(container, child_data);
         */
     }
+
+    viewParamsToData(viewParams, container) {}
 
     childViewParamsToData(this_element, child_viewParams) {}
 
@@ -178,18 +182,18 @@ class Score extends Template.SymbolBase {
         const lastChild = children[numChildren-1];
         const partHeight = parseFloat(lastChild.querySelector(`#${lastChild.id}-cornerVertical`).getAttribute('y2'));
         return {
-            height: partHeight + element.dataset.bottomMargin - element.dataset.y
+            height: partHeight + element.dataset.margin_bottom - element.dataset.y
         }
     }
 
-    updateFromDataset(element) {
+    //updateFromDataset(element) {
 
         /**
          * here is where we might want to change the x_ and y_ params
          * for mapping the children
          */
 
-    }
+    //}
 
 
 
