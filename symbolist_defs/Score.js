@@ -123,11 +123,7 @@ class Score extends Template.SymbolBase {
         }
     }
 
-    /**
-     * 
-     * @param {Element} this_element instance of this element
-     * @param {Object} child_data child data object, requesting information about where to put itself
-     */
+    /*
     childDataToViewParams(this_element, child_data) {
         const x = parseFloat(this_element.dataset.x) + parseFloat(this_element.dataset.margin_left) + parseFloat(this_element.dataset.indent);
 
@@ -140,9 +136,12 @@ class Score extends Template.SymbolBase {
             y += parseFloat(lastChildBottom);
 
             const thisChild = this_element.querySelector(`#${child_data.id}`);
+            
             // if the child already exists
             if (thisChild) {
-                y -= ui_api.getBBoxAdjusted(thisChild).height + parseFloat(this_element.dataset.margin_part);
+                const thisChildTop = parseFloat(thisChild.querySelector(`#${child_data.id}-cornerVertical`).getAttribute('y1'));
+                const thisChildBottom = parseFloat(thisChild.querySelector(`#${child_data.id}-cornerVertical`).getAttribute('y2'));
+                y -= thisChildBottom - thisChildTop + parseFloat(this_element.dataset.margin_part);
             }
         }
         else  {
@@ -155,14 +154,37 @@ class Score extends Template.SymbolBase {
         };
 
 
-        /*
+        
         // The way to get parent defs:
-        let container = ui_api.getContainerForElement(this_element);
-        let parentDef = ui_api.getDefForElement(container);
+        //let container = ui_api.getContainerForElement(this_element);
+        //let parentDef = ui_api.getDefForElement(container);
         //return parentDef.childDataToViewParams(container, child_data);
-        */
+        
     }
-
+    */
+    childDataToViewParams(this_element, child_data) {
+        const x = parseFloat(this_element.dataset.x) + parseFloat(this_element.dataset.margin_left) + parseFloat(this_element.dataset.indent);
+        const children = this_element.querySelector('.contents').children;
+        const titleText = this_element.querySelector('.Score-title');
+        let y = ui_api.getBBoxAdjusted(titleText).bottom + parseFloat(this_element.dataset.margin_part);
+        
+        for (let i = 0; i < children.length; i++) {
+            //console.log('i ==',i);
+            const currentId = children[i].id;
+            if (currentId == child_data.id) {
+                break;
+            }
+            else {
+                const vLine = children[i].querySelector(`#${currentId}-cornerVertical`);
+                const height = parseFloat(vLine.getAttribute('y2')) - parseFloat(vLine.getAttribute('y1'));
+                y += height + parseFloat(this_element.dataset.margin_part);
+            }
+        }
+        return {
+            x, 
+            y
+        };
+    }
     viewParamsToData(viewParams, container) {}
 
     childViewParamsToData(this_element, child_viewParams) {}
@@ -177,13 +199,30 @@ class Score extends Template.SymbolBase {
      * 
      */
     updateAfterContents(element) {
+        console.log('Score updateAfterContents');
         const children = element.querySelector('.contents').children;
         const numChildren = children.length;
         const lastChild = children[numChildren-1];
-        const partHeight = parseFloat(lastChild.querySelector(`#${lastChild.id}-cornerVertical`).getAttribute('y2'));
-        return {
-            height: partHeight + element.dataset.margin_bottom - element.dataset.y
+        const partBottom = parseFloat(lastChild.querySelector(`#${lastChild.id}-cornerVertical`).getAttribute('y2'));
+        
+        const dataObj = {
+            id: element.id,
+            x: parseFloat(element.dataset.x),
+            y: parseFloat(element.dataset.y),
+            width: parseFloat(element.dataset.width),
+            height: partBottom + parseFloat(element.dataset.margin_bottom) - parseFloat(element.dataset.y),
+            title: element.dataset.title,
+            margin_left: parseFloat(element.dataset.margin_left),
+            margin_right: parseFloat(element.dataset.margin_right),
+            margin_top: parseFloat(element.dataset.margin_top),
+            margin_bottom: parseFloat(element.dataset.margin_bottom),
+            margin_part: parseFloat(element.dataset.margin_part),
+            indent: parseFloat(element.dataset.indent)
         }
+
+        const container = ui_api.getContainerForElement(element);
+
+        this.fromData(dataObj, container);
     }
 
     //updateFromDataset(element) {

@@ -120,7 +120,7 @@ class Part extends Template.SymbolBase
     getElementViewParams(element) {
 
         const vLine = element.querySelector(`#${element.id}-cornerVertical`);
-        const nameText = element.querySelector('.display .Part-name');
+        const nameText = element.querySelector('.Part-name');
         const x = parseFloat(vLine.getAttribute('x1'));
         const y = parseFloat(vLine.getAttribute('y1'));
         const height = parseFloat(vLine.getAttribute('y2')) - y;
@@ -160,11 +160,48 @@ class Part extends Template.SymbolBase
      */
     childDataToViewParams(this_element, child_data) {
         const viewParams = this.getElementViewParams(this_element);
-
-        return {
-            x: viewParams.x,
-            y: viewParams.y + viewParams.height / 2
+        const index = parseInt(child_data.index);
+        let x, time_signature_visible;
+        //console.log('Measure', index);
+        //console.trace();
+        if (index == 0) { // first measure
+            x = viewParams.x;
+            if (child_data.time_signature_visible == 'auto') {
+                time_signature_visible = true;
+            }
+            else time_signature_visible = child_data.time_signature_visible;
         }
+        else {
+            // Might have a better method?
+            const prevMeasure = this.childGetPreviousMeasure(this_element, child_data);
+            const prevBBox = ui_api.getBBoxAdjusted(prevMeasure);
+            x = prevBBox.right;
+            //console.log('x offset',x - viewParams.x);
+            if (child_data.time_signature_visible == 'auto') {
+                const prevTimeSig = prevMeasure.dataset.time_signature;
+                time_signature_visible = (prevTimeSig != JSON.stringify(child_data.time_signature));
+            }
+            else {
+                time_signature_visible = child_data.time_signature_visible;
+            }
+        }
+        return {
+            x,
+            y: viewParams.y + viewParams.height / 2,
+            time_signature_visible
+        }
+    }
+
+    childGetPreviousMeasure(this_element, child_data) {
+        //console.log('Measure', child_data.index);
+        const allMeasures = this_element.querySelectorAll(`.symbol.Measure`);
+        //console.log('allMeasures', allMeasures);
+        let prevMeasure;
+        allMeasures.forEach(child => {
+            if (parseInt(child.dataset.index) == parseInt(child_data.index - 1)) prevMeasure = child;
+        });
+        //console.log('prevMeasure ==',prevMeasure);
+        return prevMeasure;
     }
     
     childViewParamsToData(this_element, child_viewParams) {

@@ -6,7 +6,7 @@ class StaffClef extends Template.SymbolBase
     constructor() {
         super();
         this.class = 'StaffClef';
-        this.palette = [];
+        this.palette = ['Note'];
         this.fontSize = 24;
         this.clefDictionary = {
             G: '&#xE050',
@@ -27,9 +27,9 @@ class StaffClef extends Template.SymbolBase
                 staff_line : [-2, -1, 0, 1, 2],
                 clef: 'G',
                 clef_anchor: -1,
-                clef_visible: false,
+                clef_visible: 'auto',
                 key_signature: [],
-                key_signature_visible: false
+                key_signature_visible: 'auto'
             },
             
             view: {
@@ -41,16 +41,14 @@ class StaffClef extends Template.SymbolBase
                 y: 100,
                 clef: 'G',
                 clef_anchor: -1,
-                clef_visible: false
+                clef_visible: 'auto',
+                key_signature: [],
+                key_signature_visible: 'auto'
             },
             
             children: {
-                data: {
-
-                },
-                view: {
-
-                }
+                data: {},
+                view: {}
             }
         }
     }
@@ -58,7 +56,7 @@ class StaffClef extends Template.SymbolBase
     drag(element, pos){}
 
     display(params) {
-        console.log('params', params);
+        //console.log('params', params);
         ui_api.hasParam(params, Object.keys(this.structs.view) );
         let returnArray = [];
 
@@ -102,7 +100,13 @@ class StaffClef extends Template.SymbolBase
             id: `${params.id}-clef_key-group`,
             child: []
         }
-        if (params.clef_visible) {
+        let clefVisible = params.clef_visible;
+        console.log('clefVisible', clefVisible);
+        if (clefVisible == 'auto') {
+            console.error('Error: clef_visible is still auto inside StaffClef display');
+            clefVisible = true;
+        }
+        if (clefVisible == 'true' || clefVisible == true) {
             clefKeyGroup.child.push({
                 new: 'text',
                 class: 'StaffClef-clef Global-musicFont',
@@ -151,6 +155,23 @@ class StaffClef extends Template.SymbolBase
     }
 
     childDataToViewParams(this_element, child_data) {
+        const y = this.getElementViewParams(this_element).y;
+        let x;
+
+        const clefKeyGroup = this_element.querySelector('.StaffClef-clef_key-group');
+        if (clefKeyGroup.childNodes.length > 0) {
+            x = ui_api.getBBoxAdjusted(clefKeyGroup).right;
+        }
+        else {
+            x = this.getElementViewParams(this_element).x;
+        }
+
+        const note_head = '';
+        return {
+            x,
+            y,
+            note_head
+        }
     }
 
     childViewParamsToData(this_element, child_viewParams) {

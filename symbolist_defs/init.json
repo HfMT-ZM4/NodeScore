@@ -9,16 +9,62 @@
     "title" : "Example Score",
     "contents" : [{
         "class" : "Part",
-        "id" : "Part_init",
+        "id" : "Part_0",
         "part_name" : "Example Part",
         "contents" : [{
             "class" : "Measure",
-            "id" : "Measure_init",
-            "time_signature_visible" : true,
+            "id" : "Measure_0",
+            "index" : 0,
             "contents" : [{
                 "class" : "StaffClef",
-                "id" : "StaffClef_init",
-                "clef_visible" : true,
+                "id" : "StaffClef_0",
+                "clef" : "C",
+                "clef_anchor" : 1,
+                "contents" : []
+            }]
+        },
+        {
+            "class" : "Measure",
+            "id" : "Measure_1",
+            "index" : 1,
+            "time_signature" : [3,2],
+            "contents" : [{
+                "class" : "StaffClef",
+                "id" : "StaffClef_1",
+                "clef" : "C",
+                "clef_anchor" : 1,
+                "contents" : []
+            }]
+        }]
+    },
+    {
+        "class" : "Part",
+        "id" : "Part_1",
+        "part_name" : "Example Part",
+        "contents" : [{
+            "class" : "Measure",
+            "id" : "Measure_1_0",
+            "index" : 0,
+            "time_signature" : [6,8],
+            "contents" : [{
+                "class" : "StaffClef",
+                "id" : "StaffClef_1_0",
+                "clef" : "perc",
+                "clef_anchor" : 0,
+                "staff_line" : [0],
+                "contents" : []
+            }]
+        },
+        {
+            "class" : "Measure",
+            "id" : "Measure_1_1",
+            "index" : 1,
+            "time_signature" : [6,8],
+            "contents" : [{
+                "class" : "StaffClef",
+                "id" : "StaffClef_1_1",
+                "clef" : "G8vb",
+                "clef_anchor" : -3,
                 "contents" : []
             }]
         }]

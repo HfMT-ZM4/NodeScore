@@ -7,6 +7,7 @@ class Measure extends Template.SymbolBase
         this.class = 'Measure';
         this.palette = ['StaffClef'];
         this.fontSize = 24;
+        this.minBarlineHeight = this.fontSize / 2;
         this.timeSigGlyphs = {
             '0': '',
             '1': '',
@@ -29,28 +30,31 @@ class Measure extends Template.SymbolBase
             data: {
                 class: this.class,
                 id : `${this.class}-0`,
+                index : 0,
                 time_signature : [4, 4],
-                time_signature_visible : false,
+                time_signature_visible : 'auto',
                 barline_type: 'single',
                 repeat_start: false,
                 repeat_end: false,
-                measure_number_visible : false
+                measure_number_offset: 1,
+                measure_number_visible : 'auto'
             },
             
             view: {
                 class: this.class,
-                id: `${this.class}-0`, 
+                id: `${this.class}-0`,
                 x: 0, // left
                 y: 0, // middle
-                x_offset: 0, // space for clef + keysig
+                clef_offset: 0, // space for clef + keysig in child
                 width: 200,
                 barline_height: 10,
                 barline_type: 'single',
                 time_signature : [4, 4],
-                time_signature_visible : true,
+                time_signature_visible : 'auto',
                 repeat_start: false,
                 repeat_end: false,
-                measure_number_visible : false
+                measure_number_offset: 1,
+                measure_number_visible : 'auto'
             },
             
             children: {
@@ -69,6 +73,7 @@ class Measure extends Template.SymbolBase
 
         ui_api.hasParam(params, Object.keys(this.structs.view) );
         let currentX = params.x;
+        //console.log('currentX', currentX);
         let outputArray = [];
 
 
@@ -82,9 +87,13 @@ class Measure extends Template.SymbolBase
             height: params.barline_height
         })
 
-        currentX += params.x_offset;
-
-        if (params.time_signature_visible) {
+        currentX += params.clef_offset;
+        let timeSigVisible = params.time_signature_visible;
+        if (timeSigVisible == 'auto') {
+            console.error('Error: time_signature_visible is still auto in Measure display()');
+            timeSigVisible = true;
+        }
+        if (timeSigVisible) {
             //if (typeof(params.time_signature) == 'string') params.time_signature = JSON.parse(params.time_signature);
         
             outputArray.push({
@@ -107,6 +116,20 @@ class Measure extends Template.SymbolBase
         
         switch(params.barline_type) {
             // Add codes for other barline types
+            case 'hide' : 
+                outputArray.push({
+                    new: 'line',
+                    class: 'Measure-barLine',
+                    id: `${params.id}-barLine`,
+                    x1: params.x + params.width,
+                    x2: params.x + params.width,
+                    y1: params.y - params.barline_height / 2,
+                    y2: params.y + params.barline_height / 2,
+                    style: {
+                        'stroke-opacity': 0
+                    }
+                });
+            break;
             default:
                 outputArray.push({
                     new: 'line',
@@ -132,8 +155,7 @@ class Measure extends Template.SymbolBase
     
     getElementViewParams(element) {
 
-
-        const ref = element.querySelector(`.display .Measure-ref`);
+        const ref = element.querySelector(`.Measure-ref`);
         const x = parseFloat(ref.getAttribute('x'));
         const y = parseFloat(ref.getAttribute('y'));
         const width = parseFloat(ref.getAttribute('width'));
@@ -180,14 +202,37 @@ class Measure extends Template.SymbolBase
         }
     }
 
+    getPreviousMeasure(this_element) {
+        const container = ui_api.getContainerForElement(this_element);
+        const parentDef = ui_api.getDefForElement(container);
+        if (parentDef.class == 'Part') {
+            const this_data = ui_api.getElementData(this_element, container);
+            return parentDef.childGetPreviousMeasure(container, this_data);
+        }
+    }
+
     childDataToViewParams(this_element, child_data) {
-        let x = this.getElementViewParams(this_element).x;
-        let y = this.getElementViewParams(this_element).y;
-        let staff_line_width = this.getElementViewParams(this_element).width;
+        const x = this.getElementViewParams(this_element).x;
+        const y = this.getElementViewParams(this_element).y;
+        const staff_line_width = this.getElementViewParams(this_element).width;
+
+        let clef_visible = child_data.clef_visible;
+        if (this_element.dataset.index != 0) {
+            if (clef_visible == 'auto') {
+                const prevMeasure = this.getPreviousMeasure(this_element);
+                const prevStaff = prevMeasure.querySelector('.StaffClef');
+                clef_visible = !(prevStaff.dataset.clef == child_data.clef && prevStaff.dataset.clef_anchor == child_data.clef_anchor);
+            }
+        }
+        else {
+            if (clef_visible == 'auto') clef_visible = true;
+        }
+
         return {
             x,
             y,
-            staff_line_width
+            staff_line_width,
+            clef_visible
         }
     }
     
@@ -196,15 +241,24 @@ class Measure extends Template.SymbolBase
     
     
     updateAfterContents( element ) {
-        const staffLines = element.querySelector('.display .StaffClef-staff_line-group');
-        const barline_height = ui_api.getBBoxAdjusted(staffLines).bottom - ui_api.getBBoxAdjusted(staffLines).top;
+        //console.log('Update measure', element.dataset.index);
+        const staffLines = element.querySelector('.StaffClef-staff_line-group');
+        const barline_height = Math.max(this.minBarlineHeight, ui_api.getBBoxAdjusted(staffLines).bottom - ui_api.getBBoxAdjusted(staffLines).top);
         
-        const clefKeyGroup = element.querySelector('.display .StaffClef-clef_key-group');
-        const x_offset = ui_api.getBBoxAdjusted(clefKeyGroup).right - ui_api.getBBoxAdjusted(clefKeyGroup).left;
+        const clefKeyGroup = element.querySelector('.StaffClef-clef_key-group');
+        let clef_offset;
+        if (clefKeyGroup.childNodes.length == 0) {
+            //console.log('No clef keysig');
+            clef_offset = 0;
+        }
+        else {
+            clef_offset = ui_api.getBBoxAdjusted(clefKeyGroup).right - ui_api.getBBoxAdjusted(clefKeyGroup).left;
+        }
 
         let dataObj = {
             id: element.id,
-            x_offset,
+            index: element.dataset.index,
+            clef_offset,
             time_signature : JSON.parse(element.dataset.time_signature),
             time_signature_visible : element.dataset.time_signature_visible,
             barline_type: element.dataset.barline_type,
@@ -214,7 +268,6 @@ class Measure extends Template.SymbolBase
             measure_number_visible : element.dataset.measure_number_visible
             
         }
-
         const container = ui_api.getContainerForElement(element);
 
         this.fromData(dataObj, container);

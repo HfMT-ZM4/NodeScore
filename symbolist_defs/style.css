@@ -46,7 +46,6 @@
 .StaffClef-staff_line {
     stroke: black;
 }
-
 .StaffClef-clef {
     fill: black;
 }
@@ -54,4 +53,8 @@
     stroke: pink;
     stroke-opacity: 0;
     fill: none;
+}
+
+.Note-note_head {
+    fill: black;
 }
