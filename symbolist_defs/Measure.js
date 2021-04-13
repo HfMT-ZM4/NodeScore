@@ -95,22 +95,26 @@ class Measure extends Template.SymbolBase
         }
         if (timeSigVisible) {
             //if (typeof(params.time_signature) == 'string') params.time_signature = JSON.parse(params.time_signature);
-        
             outputArray.push({
-                new: 'text',
-                id: `${params.id}-timeSigTop`,
-                class: 'Measure-timeSigTop Global-musicFont',
-                child: this.timeSigGlyphs[params.time_signature[0]],
-                x: currentX,
-                y: params.y-this.fontSize/4
-            });
-            outputArray.push({
-                new: 'text',
-                id: `${params.id}-timeSigBottom`,
-                class: 'Measure-timeSigBottom Global-musicFont',
-                child: this.timeSigGlyphs[params.time_signature[1]],
-                x: currentX,
-                y: params.y+this.fontSize/4
+                new: 'g',
+                id: `${params.id}-timeSig-group`,
+                class: 'Measure-timeSig-group',
+                child: [{
+                    new: 'text',
+                    id: `${params.id}-timeSig-top`,
+                    class: 'Measure-timeSig-top Global-musicFont',
+                    child: this.timeSigGlyphs[params.time_signature[0]],
+                    x: currentX,
+                    y: params.y-this.fontSize/4
+                },
+                {
+                    new: 'text',
+                    id: `${params.id}-timeSig-bottom`,
+                    class: 'Measure-timeSig-bottom Global-musicFont',
+                    child: this.timeSigGlyphs[params.time_signature[1]],
+                    x: currentX,
+                    y: params.y+this.fontSize/4
+                }]
             });
         }
         
