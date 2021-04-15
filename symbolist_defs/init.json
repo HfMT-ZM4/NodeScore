@@ -18,8 +18,9 @@
             "contents" : [{
                 "class" : "StaffClef",
                 "id" : "StaffClef_0",
-                "clef" : "C",
-                "clef_anchor" : 1,
+                "clef" : "G",
+                "clef_anchor" : -1,
+                "key_signature" : "Abm",
                 "contents" : []
             }]
         },
@@ -32,7 +33,8 @@
                 "class" : "StaffClef",
                 "id" : "StaffClef_1",
                 "clef" : "C",
-                "clef_anchor" : 1,
+                "clef_anchor" : 0,
+                "key_signature" : "Cb",
                 "contents" : []
             }]
         }]
@@ -49,9 +51,9 @@
             "contents" : [{
                 "class" : "StaffClef",
                 "id" : "StaffClef_1_0",
-                "clef" : "perc",
-                "clef_anchor" : 0,
-                "staff_line" : [0],
+                "clef" : "F",
+                "clef_anchor" : 1,
+                "key_signature" : "C#",
                 "contents" : []
             }]
         },
@@ -64,7 +66,8 @@
                 "class" : "StaffClef",
                 "id" : "StaffClef_1_1",
                 "clef" : "G8vb",
-                "clef_anchor" : -3,
+                "clef_anchor" : -1,
+                "key_signature" : "A#m",
                 "contents" : []
             }]
         }]

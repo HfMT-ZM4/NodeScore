@@ -221,22 +221,28 @@ class Measure extends Template.SymbolBase
         const staff_line_width = this.getElementViewParams(this_element).width;
 
         let clef_visible = child_data.clef_visible;
+        let key_signature_visible = child_data.key_signature_visible;
         if (this_element.dataset.index != 0) {
+            const prevMeasure = this.getPreviousMeasure(this_element);
+            const prevStaff = prevMeasure.querySelector('.StaffClef');
             if (clef_visible == 'auto') {
-                const prevMeasure = this.getPreviousMeasure(this_element);
-                const prevStaff = prevMeasure.querySelector('.StaffClef');
                 clef_visible = !(prevStaff.dataset.clef == child_data.clef && prevStaff.dataset.clef_anchor == child_data.clef_anchor);
+            }
+            if (key_signature_visible == 'auto') {
+                key_signature_visible = !(prevStaff.dataset.key_signature == child_data.key_signature && prevStaff.dataset.key_map == child_data.key_map);
             }
         }
         else {
             if (clef_visible == 'auto') clef_visible = true;
+            if (key_signature_visible == 'auto') key_signature_visible = true;
         }
 
         return {
             x,
             y,
             staff_line_width,
-            clef_visible
+            clef_visible,
+            key_signature_visible
         }
     }
     

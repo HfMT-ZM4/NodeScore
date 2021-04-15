@@ -49,6 +49,9 @@
 .StaffClef-clef {
     fill: black;
 }
+.StaffClef-key_signature {
+    fill: black;
+}
 .StaffClef-ref {
     stroke: pink;
     stroke-opacity: 0;

@@ -32,9 +32,9 @@ class Note extends Template.SymbolBase
                 grace: false,
                 note_head: 'auto',
                 accidental: 0,
-                accidental_map: '',
                 stem_height: 1,
-                stem_direction: 'auto'
+                stem_direction: 'auto',
+                ledger_lines: []
 
             },
             

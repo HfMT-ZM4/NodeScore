@@ -8,13 +8,6 @@ class StaffClef extends Template.SymbolBase
         this.class = 'StaffClef';
         this.palette = ['Note'];
         this.fontSize = 24;
-        this.clefDictionary = {
-            G: '&#xE050',
-            C: '&#xE05C',
-            F: '&#xE062',
-            G8vb: '&#xE052',
-            perc: '&#xE069'
-        }
     }
 
 
@@ -28,21 +21,23 @@ class StaffClef extends Template.SymbolBase
                 clef: 'G',
                 clef_anchor: -1,
                 clef_visible: 'auto',
-                key_signature: [],
+                key_map: '12ED2',
+                key_signature: 'none',
                 key_signature_visible: 'auto'
             },
             
             view: {
                 class: this.class,
                 id: `${this.class}-0`, 
-                staff_line : [0],
+                staff_line : [-2, -1, 0, 1, 2],
                 staff_line_width: 100,
                 x: 100,
                 y: 100,
                 clef: 'G',
                 clef_anchor: -1,
                 clef_visible: 'auto',
-                key_signature: [],
+                key_map: '12ED2',
+                key_signature: 'none',
                 key_signature_visible: 'auto'
             },
             
@@ -101,22 +96,61 @@ class StaffClef extends Template.SymbolBase
             child: []
         }
         let clefVisible = params.clef_visible;
-        console.log('clefVisible', clefVisible);
+        let keySigVisible = params.key_signature_visible;
+        let keyMap;
         if (clefVisible == 'auto') {
             console.error('Error: clef_visible is still auto inside StaffClef display');
             clefVisible = true;
         }
-        if (clefVisible == 'true' || clefVisible == true) {
-            clefKeyGroup.child.push({
-                new: 'text',
-                class: 'StaffClef-clef Global-musicFont',
-                id: `${params.id}-clef`,
-                x: params.x,
-                y: params.y - staffLineSpacing * params.clef_anchor,
-                child: this.clefDictionary[params.clef]
-            });
+        if (keySigVisible == 'auto') {
+            console.error('Error: key_signature_visible is still auto inside StaffClef display');
+            keySigVisible = true;
         }
+        if (clefVisible == 'true' || clefVisible == true || keySigVisible == 'true' || keySigVisible == true) {
+            keyMap = require(`./key_maps/${params.key_map}`);
+        }
+        //console.log('clefVisible', clefVisible);
+        if (clefVisible == 'true' || clefVisible == true) {
+            let clefGroup = {
+                new: 'g',
+                class: 'StaffClef-clef-group',
+                id: `${params.id}-clef-group`,
+                child: []
+            }
+            if (Array.isArray(params.clef)) {
+                params.clef.forEach((c, ind) => {
+                    clefGroup.child.push({
+                        new: 'text',
+                        class: 'StaffClef-clef Global-musicFont',
+                        id: `${params.id}-clef`,
+                        x: params.x,
+                        y: params.y - staffLineSpacing * params.clef_anchor[ind],
+                        child: keyMap.clefDef[c].glyph
+                    });
+                })
+            }
+            else {
+                clefGroup.child.push({
+                    new: 'text',
+                    class: 'StaffClef-clef Global-musicFont',
+                    id: `${params.id}-clef`,
+                    x: params.x,
+                    y: params.y - staffLineSpacing * params.clef_anchor,
+                    child: keyMap.clefDef[params.clef].glyph
+                });
+            }
+
+            clefKeyGroup.child.push(clefGroup);
+        }
+        
+        if (keySigVisible == 'true' || keySigVisible == true) {
+            const keySigGroup = keyMap.keySignatureDisplay(params, params.x + staffLineSpacing * 3, staffLineSpacing);
+            clefKeyGroup.child.push(keySigGroup);
+        }
+        
+        
         returnArray.push(clefKeyGroup);
+        
         return returnArray;
     }
     
@@ -155,22 +189,31 @@ class StaffClef extends Template.SymbolBase
     }
 
     childDataToViewParams(this_element, child_data) {
-        const y = this.getElementViewParams(this_element).y;
-        let x;
+        const keyMap = require(`./key_maps/${this_element.dataset.key_map}`);
+        if (child_data.class == 'Note') {
+            const clefKeyGroup = this_element.querySelector('.StaffClef-clef_key-group');
+            let y = this.getElementViewParams(this_element).y;
 
-        const clefKeyGroup = this_element.querySelector('.StaffClef-clef_key-group');
-        if (clefKeyGroup.childNodes.length > 0) {
-            x = ui_api.getBBoxAdjusted(clefKeyGroup).right;
-        }
-        else {
-            x = this.getElementViewParams(this_element).x;
-        }
+            // initialize x, start from the right of timeSig/clefKey if visible
+            let x;
+            const container = ui_api.getContainerForElement(this_element);
+            const timeSigGroup = container.querySelector('.Measure-timeSig-group');
+            if (timeSigGroup) {
+                x = ui_api.getBBoxAdjusted(timeSigGroup).right;
+            }
+            else if (clefKeyGroup.childNodes.length > 0) {
+                x = ui_api.getBBoxAdjusted(clefKeyGroup).right;
+            }
+            else {
+                x = this.getElementViewParams(this_element).x;
+            }
 
-        const note_head = '';
-        return {
-            x,
-            y,
-            note_head
+            const note_head = '';
+            return {
+                x,
+                y,
+                note_head
+            }
         }
     }
 
