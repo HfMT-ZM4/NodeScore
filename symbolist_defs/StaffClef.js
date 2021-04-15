@@ -142,7 +142,7 @@ class StaffClef extends Template.SymbolBase
 
             clefKeyGroup.child.push(clefGroup);
         }
-        
+        console.log('Start key sig', params.key_signature)
         if (keySigVisible == 'true' || keySigVisible == true) {
             const keySigGroup = keyMap.keySignatureDisplay(params, params.x + staffLineSpacing * 3, staffLineSpacing);
             clefKeyGroup.child.push(keySigGroup);

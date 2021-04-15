@@ -262,7 +262,7 @@ class Measure extends Template.SymbolBase
             clef_offset = 0;
         }
         else {
-            clef_offset = ui_api.getBBoxAdjusted(clefKeyGroup).right - ui_api.getBBoxAdjusted(clefKeyGroup).left;
+            clef_offset = ui_api.getBBoxAdjusted(clefKeyGroup).width;
         }
 
         let dataObj = {

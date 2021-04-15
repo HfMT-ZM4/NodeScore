@@ -65,8 +65,8 @@
             "contents" : [{
                 "class" : "StaffClef",
                 "id" : "StaffClef_1_1",
-                "clef" : "G8vb",
-                "clef_anchor" : -1,
+                "clef" : "C",
+                "clef_anchor" : 1,
                 "key_signature" : "A#m",
                 "contents" : []
             }]

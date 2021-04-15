@@ -5,6 +5,7 @@ const context = {
     repeat_interval: 12,
     dominant_interval: 7,
     mode: [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+    mode_steps: 7,
     tonic: 0
 }
 
@@ -12,23 +13,34 @@ const clefDef = {
     G: {
         pitch: 67,
         glyph: '&#xE050',
-        max_accidental_staff_level: {
-            sharp : 5,
-            flat : 3
+        key_signature_centroid: {
+            sharp: 4,
+            flat: 2
         }
     },
     C: {
         pitch: 60,
-        glyph: '&#xE05C'
+        glyph: '&#xE05C',
+        key_signature_centroid: {
+            sharp: 1,
+            flat: -1
+        }
     },
     F: {
         pitch: 53,
-        glyph: '&#xE062'
+        glyph: '&#xE062',
+        key_signature_centroid: {
+            sharp: -2,
+            flat: -4
+        }
     },
     G8vb: {
         pitch: 55,
         glyph: '&#xE052',
-        max_accidental_staff_level: 5
+        key_signature_centroid: {
+            sharp: 4,
+            flat: 2
+        }
     }
 }
 
@@ -55,7 +67,7 @@ function keySignatureDef(key) {
                 pitch_class: pitchClass,
                 accidental: (sharp ? 'sharp' : 'flat')
             });
-            pitchClass = (pitchClass + (sharp ? context.dominant_interval : -context.dominant_interval)) % context.repeat_interval;
+            pitchClass = (pitchClass + (sharp ? context.dominant_interval : context.repeat_interval-context.dominant_interval)) % context.repeat_interval;
         }
         return keySigArray;
     }
@@ -165,32 +177,29 @@ function accidentalDef(acc) {
     }
 }
 
-/**
- * 
- * @param {Number} pitch_class 
- * @param {Number} clef_pitch 
- * @param {Number} clef_staff_level 
- * @param {Number} max_staff_level 
- * @param {Number} min_staff_level 
- * @returns staff level
- */
-function findStaffLevelForPitchClass(pitch_class, staff_level_pitch_list, accidental) {
+function findStaffLevelForPitchClass(pitch_class, staff_level_pitch_list, accidental, centroid) {
     let match;
     const matchClass = pitch_class - accidental.deviation;
     for (sl in staff_level_pitch_list) {
         if ((staff_level_pitch_list[sl] - matchClass) % context.repeat_interval == 0) {
+            console.log('found', sl);
             // if not previously matched
             if (match === undefined) {
                 match = Number(sl);
             }
             else {
-                // prioritize higher staff levels
-                match = Math.max(match, Number(sl));
+                // prioritize staff levels closest to centroid
+                if (Math.abs(Number(sl)-centroid) < Math.abs(match-centroid)) {
+                    match = Number(sl);
+                }
             }
         }
     }
     // if no staff level found
-    if (match === undefined) return null;
+    if (match === undefined) {
+        console.error(`Key signature: No match found for pitch class ${pitch_class}`)
+        return null;
+    }
     else return match;
 }
 
@@ -215,7 +224,7 @@ function clefToPitch(clef_pitch, clef_staff_level, max_staff_level, min_staff_le
         }
         returnObj[i] = currentPitch;
     }
-    currentPitch = clef_pitch - context.step_size;
+    currentPitch = clef_pitch;
     for (let i = clef_staff_level - 1; i >= min_staff_level; i--) {
         currentPitch -= context.step_size;
         while (context.mode[currentPitch % context.repeat_interval] == 0) {
@@ -253,8 +262,6 @@ function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
 
     const keySigArray = keySignatureDef(staff_view.key_signature);
     const accidentalSpacing = staff_line_spacing;
-    const maxStaffLevel = (clefDef[staff_view.clef].max_accidental_staff_level || Math.max.apply(null, staff_view.staff_line) * 2);
-    const minStaffLevel = (clefDef[staff_view.clef].min_accidental_staff_level || Math.min.apply(null, staff_view.staff_line) * 2);
     let clefPitch, clefStaffLevel;
     if (Array.isArray(staff_view.clef) && Array.isArray(staff_view.clef_anchor)) {
         clefPitch = clefDef[staff_view.clef[0]].pitch;
@@ -264,14 +271,24 @@ function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
         clefPitch = clefDef[staff_view.clef].pitch;
         clefStaffLevel = staff_view.clef_anchor * 2;
     }
+    let clefCentroid = clefStaffLevel + clefDef[staff_view.clef].key_signature_centroid[keySigArray[0].accidental];
+    let maxStaffLevel;
+    if (staff_view.clef = 'C') { //special case
+        maxStaffLevel = Math.max.apply(null, staff_view.staff_line) * 2;
+    }
+    else {
+        maxStaffLevel = Math.max.apply(null, staff_view.staff_line) * 2 + 1;
+    }
+    const minStaffLevel = Math.min.apply(null, staff_view.staff_line) * 2 - 1;
     const staffLevelPitchList = clefToPitch(clefPitch, clefStaffLevel, maxStaffLevel, minStaffLevel);
+    console.log('staffLevelPitchList', staffLevelPitchList);
     keySigArray.forEach((obj, ind) => {
         svgGroup.child.push({
             new: 'text',
             class: 'StaffClef-key_signature Global-musicFont',
             id: `${staff_view.id}-key_signature-${ind}`,
             x: x_offset + ind * accidentalSpacing,
-            y: staff_view.y - staff_line_spacing / 2 * findStaffLevelForPitchClass(obj.pitch_class, staffLevelPitchList, accidentalDef(obj.accidental)),
+            y: staff_view.y - staff_line_spacing / 2 * findStaffLevelForPitchClass(obj.pitch_class, staffLevelPitchList, accidentalDef(obj.accidental), clefCentroid),
             child: accidentalDef(obj.accidental).glyph
         });
     });
