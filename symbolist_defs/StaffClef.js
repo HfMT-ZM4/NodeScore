@@ -98,6 +98,8 @@ class StaffClef extends Template.SymbolBase
         let clefVisible = params.clef_visible;
         let keySigVisible = params.key_signature_visible;
         let keyMap;
+        //console.log('clefVisible',clefVisible);
+        //console.log('keySigVisible',keySigVisible);
         if (clefVisible == 'auto') {
             console.error('Error: clef_visible is still auto inside StaffClef display');
             clefVisible = true;
@@ -106,11 +108,11 @@ class StaffClef extends Template.SymbolBase
             console.error('Error: key_signature_visible is still auto inside StaffClef display');
             keySigVisible = true;
         }
-        if (clefVisible == 'true' || clefVisible == true || keySigVisible == 'true' || keySigVisible == true) {
+        if (clefVisible == true || keySigVisible == true) {
             keyMap = require(`./key_maps/${params.key_map}`);
         }
         //console.log('clefVisible', clefVisible);
-        if (clefVisible == 'true' || clefVisible == true) {
+        if (clefVisible == true) {
             let clefGroup = {
                 new: 'g',
                 class: 'StaffClef-clef-group',
@@ -143,7 +145,7 @@ class StaffClef extends Template.SymbolBase
             clefKeyGroup.child.push(clefGroup);
         }
         console.log('Start key sig', params.key_signature)
-        if (keySigVisible == 'true' || keySigVisible == true) {
+        if (keySigVisible == true) {
             const keySigGroup = keyMap.keySignatureDisplay(params, params.x + staffLineSpacing * 3, staffLineSpacing);
             clefKeyGroup.child.push(keySigGroup);
         }
