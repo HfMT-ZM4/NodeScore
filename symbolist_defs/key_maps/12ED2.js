@@ -14,32 +14,32 @@ const clefDef = {
         pitch: 67,
         glyph: '&#xE050',
         key_signature_centroid: {
-            sharp: 4,
-            flat: 2
+            '1': 4,
+            '-1': 2
         }
     },
     C: {
         pitch: 60,
         glyph: '&#xE05C',
         key_signature_centroid: {
-            sharp: 1,
-            flat: -1
+            '1': 1,
+            '-1': -1
         }
     },
     F: {
         pitch: 53,
         glyph: '&#xE062',
         key_signature_centroid: {
-            sharp: -2,
-            flat: -4
+            '1': -2,
+            '-1': -4
         }
     },
     G8vb: {
         pitch: 55,
         glyph: '&#xE052',
         key_signature_centroid: {
-            sharp: 4,
-            flat: 2
+            '1': 4,
+            '-1': 2
         }
     }
 }
@@ -55,6 +55,20 @@ const clefDef = {
  * @param {String} key
  */
 function keySignatureDef(key) {
+    if (Array.isArray(key)) {
+        if (key.length == 0) return key;
+        else if (key.length > 0) {
+            if (typeof(key[0]) == 'string') {
+                let returnArray = [];
+                key.forEach((val, i) => {
+                    returnArray[i] = pitchClassDef[val];
+                });
+                return returnArray;
+            }
+            else return key;
+        }
+    }
+
     if (key == 'none' || key == 'C' || key == 'Am') return [];
 
     // internal, for the following 4 cases
@@ -65,7 +79,7 @@ function keySignatureDef(key) {
         for (let i = 0; i < numSharp; i++) {
             keySigArray.push({
                 pitch_class: pitchClass,
-                accidental: (sharp ? 'sharp' : 'flat')
+                accidental: (sharp ? 1 : -1)
             });
             pitchClass = (pitchClass + (sharp ? context.dominant_interval : context.repeat_interval-context.dominant_interval)) % context.repeat_interval;
         }
@@ -92,6 +106,7 @@ function keySignatureDef(key) {
         return standardKeys(flatMinor, key, false);
     }
 
+    /*
     // finally test if key is defined in JSON format
     try {
         const jsonKeySig = JSON.parse(key);
@@ -101,12 +116,14 @@ function keySignatureDef(key) {
     catch(e) {
         console.error('Please enter a valid key signature: defined string or array [{pitch_class, accidental}, ...]');
     }
+    */
 
     // any other case: no key signature
     return [];
 }
 
 function accidentalDef(acc) {
+    if (typeof(acc) == 'number') acc = acc.toString();
     switch (acc) {
         // flat
         case '-1':
@@ -177,9 +194,97 @@ function accidentalDef(acc) {
     }
 }
 
+const pitchClassDef = {
+    'C': {
+        pitch_class: 0,
+        accidental: 0
+    },
+    'Cb': {
+        pitch_class: 0,
+        accidental: -1
+    },
+    'C#': {
+        pitch_class: 1,
+        accidental: 1
+    },
+    'Db': {
+        pitch_class: 1,
+        accidental: -1
+    },
+    'D': {
+        pitch_class: 2,
+        accidental: 0
+    },
+    'D#': {
+        pitch_class: 3,
+        accidental: 1
+    },
+    'Eb': {
+        pitch_class: 3,
+        accidental: -1
+    },
+    'E': {
+        pitch_class: 4,
+        accidental: 0
+    },
+    'Fb': {
+        pitch_class: 4,
+        accidental: -1
+    },
+    'F': {
+        pitch_class: 5,
+        accidental: 0
+    },
+    'E#': {
+        pitch_class: 5,
+        accidental: 1
+    },
+    'F#': {
+        pitch_class: 6,
+        accidental: 1
+    },
+    'Gb': {
+        pitch_class: 6,
+        accidental: -1
+    },
+    'G': {
+        pitch_class: 7,
+        accidental: 0
+    },
+    'G#': {
+        pitch_class: 8,
+        accidental: 1
+    },
+    'Ab': {
+        pitch_class: 8,
+        accidental: -1
+    },
+    'A': {
+        pitch_class: 9,
+        accidental: 0
+    },
+    'A#': {
+        pitch_class: 10,
+        accidental: 1
+    },
+    'Bb': {
+        pitch_class: 10,
+        accidental: -1
+    },
+    'B': {
+        pitch_class: 11,
+        accidental: 0
+    },
+    'Cb': {
+        pitch_class: 11,
+        accidental: -1
+    }
+}
+
 function findStaffLevelForPitchClass(pitch_class, staff_level_pitch_list, accidental, centroid) {
     let match;
     const matchClass = pitch_class - accidental.deviation;
+    console.log(accidental)
     for (sl in staff_level_pitch_list) {
         if ((staff_level_pitch_list[sl] - matchClass) % context.repeat_interval == 0) {
             //console.log('found', sl);
@@ -261,6 +366,7 @@ function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
     if (staff_view.key_signature == 'none' || staff_view.key_signature == 'C' || staff_view.key_signature == 'Am') return svgGroup;
 
     const keySigArray = keySignatureDef(staff_view.key_signature);
+    console.log(keySigArray);
     const accidentalSpacing = staff_line_spacing;
     let clefPitch, clefStaffLevel;
     if (Array.isArray(staff_view.clef) && Array.isArray(staff_view.clef_anchor)) {
@@ -283,6 +389,7 @@ function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
     const staffLevelPitchList = clefToPitch(clefPitch, clefStaffLevel, maxStaffLevel, minStaffLevel);
     //console.log('staffLevelPitchList', staffLevelPitchList);
     keySigArray.forEach((obj, ind) => {
+        console.log(obj);
         svgGroup.child.push({
             new: 'text',
             class: 'StaffClef-key_signature Global-musicFont',
