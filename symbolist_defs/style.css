@@ -61,3 +61,12 @@
 .Note-note_head {
     fill: black;
 }
+.Note-accidental {
+    fill: black;
+}
+.Note-stem {
+    stroke: black;
+}
+.Note-ledger_line {
+    stroke: black;
+}

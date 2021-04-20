@@ -49,6 +49,8 @@ const clefDef = {
  * Format:
  * [ {pitch_class, accidental}, ... ]
  * 
+ * Also accepts format: ['C#', 'Ab']
+ * 
  * Pitch class to be represented in midi, from 0 to 11
  * Accidental in string
  * 
@@ -61,7 +63,10 @@ function keySignatureDef(key) {
             if (typeof(key[0]) == 'string') {
                 let returnArray = [];
                 key.forEach((val, i) => {
-                    returnArray[i] = pitchClassDef[val];
+                    returnArray[i] = {
+                        pitch_class: pitchClassDef[val].pitch_class,
+                        accidental: pitchClassDef[val].deviation
+                    };
                 });
                 return returnArray;
             }
@@ -197,99 +202,119 @@ function accidentalDef(acc) {
 const pitchClassDef = {
     'C': {
         pitch_class: 0,
-        accidental: 0
+        deviation: 0
     },
     'Cb': {
         pitch_class: 0,
-        accidental: -1
+        deviation: -1
     },
     'C#': {
         pitch_class: 1,
-        accidental: 1
+        deviation: 1
     },
     'Db': {
         pitch_class: 1,
-        accidental: -1
+        deviation: -1
     },
     'D': {
         pitch_class: 2,
-        accidental: 0
+        deviation: 0
     },
     'D#': {
         pitch_class: 3,
-        accidental: 1
+        deviation: 1
     },
     'Eb': {
         pitch_class: 3,
-        accidental: -1
+        deviation: -1
     },
     'E': {
         pitch_class: 4,
-        accidental: 0
+        deviation: 0
     },
     'Fb': {
         pitch_class: 4,
-        accidental: -1
+        deviation: -1
     },
     'F': {
         pitch_class: 5,
-        accidental: 0
+        deviation: 0
     },
     'E#': {
         pitch_class: 5,
-        accidental: 1
+        deviation: 1
     },
     'F#': {
         pitch_class: 6,
-        accidental: 1
+        deviation: 1
     },
     'Gb': {
         pitch_class: 6,
-        accidental: -1
+        deviation: -1
     },
     'G': {
         pitch_class: 7,
-        accidental: 0
+        deviation: 0
     },
     'G#': {
         pitch_class: 8,
-        accidental: 1
+        deviation: 1
     },
     'Ab': {
         pitch_class: 8,
-        accidental: -1
+        deviation: -1
     },
     'A': {
         pitch_class: 9,
-        accidental: 0
+        deviation: 0
     },
     'A#': {
         pitch_class: 10,
-        accidental: 1
+        deviation: 1
     },
     'Bb': {
         pitch_class: 10,
-        accidental: -1
+        deviation: -1
     },
     'B': {
         pitch_class: 11,
-        accidental: 0
+        deviation: 0
     },
     'Cb': {
         pitch_class: 11,
-        accidental: -1
+        deviation: -1
     }
 }
 
-function findStaffLevelForPitchClass(pitch_class, staff_level_pitch_list, accidental, centroid) {
+function pitchStringToPitch(pitch) {
+    if (typeof(pitch) == 'number') return {pitch, deviation: 0};
+
+    else if (typeof(pitch) == 'string') {
+        const octave = Number(pitch.replace(/[^0-9]/g, ''));
+        const pitchClass = pitch.replace(/[0-9]/g, '');
+        if (pitchClass in pitchClassDef && !isNaN(octave)) {
+            return {
+                pitch: (octave + 1) * context.repeat_interval + pitchClassDef[pitchClass].pitch_class,
+                deviation: pitchClassDef[pitchClass].deviation
+            }
+        }
+        else {
+            console.error(`Note pitch '${pitch}' not identified.`);
+            return null;
+        }
+    }
+}
+
+function findStaffLevelForPitchClass(pitch_class, staff_level_pitch_list, accidental, findBestMatch, centroid) {
     let match;
     const matchClass = pitch_class - accidental.deviation;
-    console.log(accidental)
+    //console.log(accidental)
     for (sl in staff_level_pitch_list) {
         if ((staff_level_pitch_list[sl] - matchClass) % context.repeat_interval == 0) {
-            //console.log('found', sl);
+            // for note calculation, no best match needed
+            if (!findBestMatch) return Number(sl);
             // if not previously matched
-            if (match === undefined) {
+            else if (match === undefined) {
                 match = Number(sl);
             }
             else {
@@ -310,27 +335,48 @@ function findStaffLevelForPitchClass(pitch_class, staff_level_pitch_list, accide
 
 /**
  * 
- * @param {Number} clef_pitch 
- * @param {Number} clef_staff_level 
- * @param {Number} max_staff_level 
- * @param {Number} min_staff_level 
+ * @param {Object} staff_view
  * @returns pitch for every staff level in range, in format { staff_level: pitch, ... }
  */
-function clefToPitch(clef_pitch, clef_staff_level, max_staff_level, min_staff_level) {
+function clefToPitchContext(staff_view) {
     let returnObj = {};
-    returnObj[clef_staff_level] = clef_pitch;
-    min_staff_level = Math.min(clef_staff_level, min_staff_level);
-    max_staff_level = Math.max(clef_staff_level, max_staff_level);
-    let currentPitch = clef_pitch;
-    for (let i = clef_staff_level + 1; i <= max_staff_level; i++) {
+    let clefPitch, clefStaffLevel;
+    if (Array.isArray(staff_view.clef) && Array.isArray(staff_view.clef_anchor)) {
+        clefPitch = clefDef[staff_view.clef[0]].pitch;
+        clefStaffLevel = staff_view.clef_anchor[0] * 2;
+    }
+    else {
+        clefPitch = clefDef[staff_view.clef].pitch;
+        clefStaffLevel = staff_view.clef_anchor * 2;
+    }
+    let maxStaffLevel, staffLine;
+    try {
+        staffLine = JSON.parse(staff_view.staff_line);
+    }
+    catch(e) {
+        staffLine = staff_view.staff_line;
+    }
+    if (staff_view.clef == 'C') { //special case
+        maxStaffLevel = Math.max.apply(null, staffLine) * 2;
+    }
+    else {
+        maxStaffLevel = Math.max.apply(null, staffLine) * 2 + 1;
+    }
+    let minStaffLevel = Math.min.apply(null, staffLine) * 2 - 1;
+
+    returnObj[clefStaffLevel] = clefPitch;
+    minStaffLevel = Math.min(clefStaffLevel, minStaffLevel);
+    maxStaffLevel = Math.max(clefStaffLevel, maxStaffLevel);
+    let currentPitch = clefPitch;
+    for (let i = clefStaffLevel + 1; i <= maxStaffLevel; i++) {
         currentPitch += context.step_size;
         while (context.mode[currentPitch % context.repeat_interval] == 0) {
             currentPitch += context.step_size;
         }
         returnObj[i] = currentPitch;
     }
-    currentPitch = clef_pitch;
-    for (let i = clef_staff_level - 1; i >= min_staff_level; i--) {
+    currentPitch = clefPitch;
+    for (let i = clefStaffLevel - 1; i >= minStaffLevel; i--) {
         currentPitch -= context.step_size;
         while (context.mode[currentPitch % context.repeat_interval] == 0) {
             currentPitch -= context.step_size;
@@ -341,13 +387,73 @@ function clefToPitch(clef_pitch, clef_staff_level, max_staff_level, min_staff_le
 }
 
 /**
- * Called by childDataToViewParams in StaffClef.js, returns note staff_level, accidental
+ * Called by childDataToViewParams in StaffClef.js, returns note view params y, accidental
  * 
  * @param {Element} staff_element 
  * @param {Object} note_data 
  */
-function noteDisplay(staff_element, note_data) {
-    return;
+function notePitchToViewParams(staff_element, note_data, staffLineSpacing) {
+    const ref = staff_element.querySelector(`.StaffClef-ref`);
+    const y0 = parseFloat(ref.getAttribute('y'));
+    const pitchObj = pitchStringToPitch(note_data.pitch);
+    let accidental_glyph = [];
+    //accidental name == deviation when it's not 0. When 0, there's no accidental
+    if (pitchObj.deviation && pitchObj.deviation != 0) {
+        accidental_glyph = [pitchObj.deviation];
+    }
+    const staffLevelPitchList = clefToPitchContext(staff_element.dataset); // necessary params are all in dataset
+    let staffLevel;
+    const tempSL = findStaffLevelForPitchClass(pitchObj.pitch, staffLevelPitchList, pitchObj, false);
+    //console.log('tempSL', tempSL);
+    const octaveDiff = staffLevelPitchList[tempSL] - pitchObj.pitch;
+    if (octaveDiff % 12 == 0) {
+        //console.log('octaveDiff', octaveDiff);
+        staffLevel = tempSL - octaveDiff / 12 * 7;
+    }
+    else {
+        console.error('Error: Found pitch class not same as required pitch.')
+    }
+    const y = y0 - staffLineSpacing / 2 * staffLevel;
+    const staffLines = JSON.parse(staff_element.dataset.staff_line);
+    const maxStaffLine = Math.max.apply(null, staffLines);
+    const minStaffLine = Math.min.apply(null, staffLines);
+    const midStaffLevel = (maxStaffLine + minStaffLine); // avg *2
+    let clef;
+    try {
+        clef = JSON.parse(staff_element.dataset.clef);
+    }
+    catch(e) {
+        clef = staff_element.dataset.clef;
+    }
+
+    // determine stem direction
+    let stem_direction;
+    if (note_data.stem_direction == 'auto') {
+        if (!Array.isArray(clef)) {
+            if (staffLevel > midStaffLevel) stem_direction = 'down';
+            else stem_direction = 'up';
+        }
+    }
+    else stem_direction = note_data.stem_direction;
+
+    // build ledger lines
+    let ledger_line = [];
+    for (let l = maxStaffLine + 1; l * 2 <= staffLevel; l++) {
+        ledger_line.push(l * 2 - staffLevel); // offset from staff level
+    }
+    for (let l = minStaffLine - 1; l * 2 >= staffLevel; l--) {
+        ledger_line.push(l * 2 - staffLevel);
+    }
+    
+    const keySigArray = keySignatureDef(staff_element.dataset.key_signature);
+
+    return {
+        y,
+        accidental_glyph,
+        stem_direction,
+        ledger_line,
+        note_head_glyph: ''
+    }
 }
 
 /**
@@ -366,36 +472,20 @@ function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
     if (staff_view.key_signature == 'none' || staff_view.key_signature == 'C' || staff_view.key_signature == 'Am') return svgGroup;
 
     const keySigArray = keySignatureDef(staff_view.key_signature);
-    console.log(keySigArray);
+    //console.log(keySigArray);
+    const clefStaffLevel = (staff_view.clef_anchor[0] || staff_view.clef_anchor) * 2;
+    const clefCentroid = clefStaffLevel + clefDef[staff_view.clef].key_signature_centroid[keySigArray[0].accidental];
     const accidentalSpacing = staff_line_spacing;
-    let clefPitch, clefStaffLevel;
-    if (Array.isArray(staff_view.clef) && Array.isArray(staff_view.clef_anchor)) {
-        clefPitch = clefDef[staff_view.clef[0]].pitch;
-        clefStaffLevel = staff_view.clef_anchor[0] * 2;
-    }
-    else {
-        clefPitch = clefDef[staff_view.clef].pitch;
-        clefStaffLevel = staff_view.clef_anchor * 2;
-    }
-    let clefCentroid = clefStaffLevel + clefDef[staff_view.clef].key_signature_centroid[keySigArray[0].accidental];
-    let maxStaffLevel;
-    if (staff_view.clef == 'C') { //special case
-        maxStaffLevel = Math.max.apply(null, staff_view.staff_line) * 2;
-    }
-    else {
-        maxStaffLevel = Math.max.apply(null, staff_view.staff_line) * 2 + 1;
-    }
-    const minStaffLevel = Math.min.apply(null, staff_view.staff_line) * 2 - 1;
-    const staffLevelPitchList = clefToPitch(clefPitch, clefStaffLevel, maxStaffLevel, minStaffLevel);
+    const staffLevelPitchList = clefToPitchContext(staff_view);
     //console.log('staffLevelPitchList', staffLevelPitchList);
     keySigArray.forEach((obj, ind) => {
-        console.log(obj);
+        //console.log(obj);
         svgGroup.child.push({
             new: 'text',
             class: 'StaffClef-key_signature Global-musicFont',
             id: `${staff_view.id}-key_signature-${ind}`,
             x: x_offset + ind * accidentalSpacing,
-            y: staff_view.y - staff_line_spacing / 2 * findStaffLevelForPitchClass(obj.pitch_class, staffLevelPitchList, accidentalDef(obj.accidental), clefCentroid),
+            y: staff_view.y - staff_line_spacing / 2 * findStaffLevelForPitchClass(obj.pitch_class, staffLevelPitchList, accidentalDef(obj.accidental), true, clefCentroid),
             child: accidentalDef(obj.accidental).glyph
         });
     });
@@ -404,9 +494,10 @@ function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
 }
 
 module.exports = {
+    pitchClassDef,
     clefDef,
     keySignatureDef,
     accidentalDef,
-    noteDisplay,
+    notePitchToViewParams,
     keySignatureDisplay
 }

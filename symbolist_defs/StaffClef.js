@@ -157,11 +157,11 @@ class StaffClef extends Template.SymbolBase
     }
     
     getElementViewParams(element) {
-        let ref = element.querySelector(`.StaffClef-ref`);
+        const ref = element.querySelector(`.StaffClef-ref`);
         
-        let x = parseFloat(ref.getAttribute('x'));
-        let y = parseFloat(ref.getAttribute('y'));
-        let staff_line_width = parseFloat(ref.getAttribute('width'));
+        const x = parseFloat(ref.getAttribute('x'));
+        const y = parseFloat(ref.getAttribute('y'));
+        const staff_line_width = parseFloat(ref.getAttribute('width'));
         return {
             id: element.id,
             staff_line : JSON.parse(element.dataset.staff_line),
@@ -194,13 +194,17 @@ class StaffClef extends Template.SymbolBase
         const keyMap = require(`./key_maps/${this_element.dataset.key_map}`);
         if (child_data.class == 'Note') {
             const clefKeyGroup = this_element.querySelector('.StaffClef-clef_key-group');
-            let y = this.getElementViewParams(this_element).y;
 
             // initialize x, start from the right of timeSig/clefKey if visible
             let x;
             const container = ui_api.getContainerForElement(this_element);
             const timeSigGroup = container.querySelector('.Measure-timeSig-group');
-            if (timeSigGroup) {
+            const children = this_element.querySelector('.contents').children;
+            if (children.length > 0 ) {
+                const lastChild = children[children.length-1];
+                x = ui_api.getBBoxAdjusted(lastChild).right;
+            }
+            else if (timeSigGroup) {
                 x = ui_api.getBBoxAdjusted(timeSigGroup).right;
             }
             else if (clefKeyGroup.childNodes.length > 0) {
@@ -209,12 +213,12 @@ class StaffClef extends Template.SymbolBase
             else {
                 x = this.getElementViewParams(this_element).x;
             }
+            
+            const fromKeyMap = keyMap.notePitchToViewParams(this_element, child_data, this.fontSize / 4);
 
-            const note_head = '';
             return {
-                x,
-                y,
-                note_head
+                ...fromKeyMap,
+                x
             }
         }
     }

@@ -21,7 +21,9 @@ class Note extends Template.SymbolBase
                 pitch: 60,
                 duration: 1,
                 hold: 1,
-                note_head_family: 'auto'
+                note_head_family: 'auto',
+                stem_direction: 'auto',
+                accidental_visible: 'auto'
             },
             
             view: {
@@ -30,12 +32,12 @@ class Note extends Template.SymbolBase
                 x: 100,
                 y: 100,
                 grace: false,
-                note_head: 'auto',
-                accidental: 0,
-                stem_height: 1,
+                note_head_glyph: 'auto',
+                accidental_glyph: [],
+                accidental_visible: 'auto',
+                stem_height: 4,
                 stem_direction: 'auto',
-                ledger_lines: []
-
+                ledger_line: []
             },
             
             children: {
@@ -48,10 +50,12 @@ class Note extends Template.SymbolBase
     drag(element, pos){}
 
     display(params) {
+        const staffLineSpacing = this.fontSize / 4;
+
         //console.log('params', params);
         ui_api.hasParam(params, Object.keys(this.structs.view) );
         let returnArray = [];
-
+        const noteHeadWidth = ui_api.getComputedTextLength(params.note_head_glyph, 'Note-note_head Global-musicFont');
         // note head
         let noteHeadGroup = {
             new: 'g',
@@ -65,9 +69,66 @@ class Note extends Template.SymbolBase
             id: `${params.id}-note_head-0`,
             x: params.x,
             y: params.y,
-            child: params.note_head
+            child: params.note_head_glyph
         });
         returnArray.push(noteHeadGroup);
+        let accidentalGroup = {
+            new: 'g',
+            class: 'Note-accidental-group Global-musicFont',
+            id: `${params.id}-accidental-group`,
+            child: []
+        };
+        params.accidental_glyph.forEach((val, i) => {
+            accidentalGroup.child.push({
+                new: 'text',
+                class: 'Note-accidental',
+                id: `${params.id}-accidental-${i}`,
+                x: params.x,
+                y: params.y,
+                child: val
+            });
+        });
+        returnArray.push(accidentalGroup);
+        let ledgerLineGroup = {
+            new: 'g',
+            class: 'Note-ledger_line-group',
+            id: `${params.id}-ledger_line-group`,
+            child: []
+        };
+        params.ledger_line.forEach((val, i) => {
+            ledgerLineGroup.child.push({
+                new: 'line',
+                class: 'Note-ledger_line',
+                id: `${params.id}-ledger_line-${i}`,
+                x1: params.x - staffLineSpacing * 0.5,
+                y1: params.y - val * staffLineSpacing / 2,
+                x2: params.x + noteHeadWidth + staffLineSpacing * 0.5,
+                y2: params.y - val * staffLineSpacing / 2
+            });
+        });
+        returnArray.push(ledgerLineGroup);
+        
+        if (params.stem_height != 0) {
+            let stemDirectionFactor, stemXOffset;
+            if (params.stem_direction == 'down') {
+                stemDirectionFactor = -1;
+                stemXOffset = 0;
+            }
+            else {
+                stemDirectionFactor = 1;
+                stemXOffset = noteHeadWidth;
+            }
+            returnArray.push({
+                new: 'line',
+                class: 'Note-stem',
+                id: `${params.id}-stem`,
+                x1: params.x + stemXOffset,
+                y1: params.y - staffLineSpacing * stemDirectionFactor * params.stem_height,
+                x2: params.x + stemXOffset,
+                y2: params.y
+            });
+        }
+        
         return returnArray;
     }
     
