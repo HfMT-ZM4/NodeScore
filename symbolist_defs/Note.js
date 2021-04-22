@@ -55,23 +55,9 @@ class Note extends Template.SymbolBase
         //console.log('params', params);
         ui_api.hasParam(params, Object.keys(this.structs.view) );
         let returnArray = [];
-        const noteHeadWidth = ui_api.getComputedTextLength(params.note_head_glyph, 'Note-note_head Global-musicFont');
-        // note head
-        let noteHeadGroup = {
-            new: 'g',
-            class: 'Note-note_head-group Global-musicFont',
-            id: `${params.id}-note_head-group`,
-            child: []
-        };
-        noteHeadGroup.child.push({
-            new: 'text',
-            class: 'Note-note_head',
-            id: `${params.id}-note_head-0`,
-            x: params.x,
-            y: params.y,
-            child: params.note_head_glyph
-        });
-        returnArray.push(noteHeadGroup);
+        let currentX = params.x;
+        
+        // accidentals
         let accidentalGroup = {
             new: 'g',
             class: 'Note-accidental-group Global-musicFont',
@@ -83,12 +69,34 @@ class Note extends Template.SymbolBase
                 new: 'text',
                 class: 'Note-accidental',
                 id: `${params.id}-accidental-${i}`,
-                x: params.x,
+                x: currentX,
                 y: params.y,
                 child: val
             });
+            currentX += ui_api.getComputedTextLength(val, 'Note-accidental Global-musicFont');
         });
         returnArray.push(accidentalGroup);
+        
+        // note head
+        let noteHeadGroup = {
+            new: 'g',
+            class: 'Note-note_head-group Global-musicFont',
+            id: `${params.id}-note_head-group`,
+            child: []
+        };
+        noteHeadGroup.child.push({
+            new: 'text',
+            class: 'Note-note_head',
+            id: `${params.id}-note_head-0`,
+            x: currentX,
+            y: params.y,
+            child: params.note_head_glyph
+        });
+        const xBeforeNoteHead = currentX;
+        currentX += ui_api.getComputedTextLength(params.note_head_glyph, 'Note-note_head Global-musicFont');
+        returnArray.push(noteHeadGroup);
+
+        // ledger lines
         let ledgerLineGroup = {
             new: 'g',
             class: 'Note-ledger_line-group',
@@ -100,31 +108,32 @@ class Note extends Template.SymbolBase
                 new: 'line',
                 class: 'Note-ledger_line',
                 id: `${params.id}-ledger_line-${i}`,
-                x1: params.x - staffLineSpacing * 0.5,
+                x1: xBeforeNoteHead - staffLineSpacing * 0.5,
                 y1: params.y - val * staffLineSpacing / 2,
-                x2: params.x + noteHeadWidth + staffLineSpacing * 0.5,
+                x2: currentX + staffLineSpacing * 0.5,
                 y2: params.y - val * staffLineSpacing / 2
             });
         });
         returnArray.push(ledgerLineGroup);
         
+        // stem
         if (params.stem_height != 0) {
-            let stemDirectionFactor, stemXOffset;
+            let stemDirectionFactor, stemX;
             if (params.stem_direction == 'down') {
                 stemDirectionFactor = -1;
-                stemXOffset = 0;
+                stemX = xBeforeNoteHead;
             }
             else {
                 stemDirectionFactor = 1;
-                stemXOffset = noteHeadWidth;
+                stemX = currentX;
             }
             returnArray.push({
                 new: 'line',
                 class: 'Note-stem',
                 id: `${params.id}-stem`,
-                x1: params.x + stemXOffset,
+                x1: stemX,
                 y1: params.y - staffLineSpacing * stemDirectionFactor * params.stem_height,
-                x2: params.x + stemXOffset,
+                x2: stemX,
                 y2: params.y
             });
         }

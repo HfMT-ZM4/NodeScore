@@ -191,7 +191,6 @@ class StaffClef extends Template.SymbolBase
     }
 
     childDataToViewParams(this_element, child_data) {
-        const keyMap = require(`./key_maps/${this_element.dataset.key_map}`);
         if (child_data.class == 'Note') {
             const clefKeyGroup = this_element.querySelector('.StaffClef-clef_key-group');
 
@@ -201,8 +200,14 @@ class StaffClef extends Template.SymbolBase
             const timeSigGroup = container.querySelector('.Measure-timeSig-group');
             const children = this_element.querySelector('.contents').children;
             if (children.length > 0 ) {
-                const lastChild = children[children.length-1];
-                x = ui_api.getBBoxAdjusted(lastChild).right;
+                try { // check if this child already exists
+                    const child_exist = document.getElementById(child_data.id);
+                    x = ui_api.getBBoxAdjusted(child_exist).left;
+                }
+                catch (e) {
+                    const lastChild = children[children.length-1];
+                    x = ui_api.getBBoxAdjusted(lastChild).right;
+                }
             }
             else if (timeSigGroup) {
                 x = ui_api.getBBoxAdjusted(timeSigGroup).right;
@@ -214,17 +219,23 @@ class StaffClef extends Template.SymbolBase
                 x = this.getElementViewParams(this_element).x;
             }
             
+            const keyMap = require(`./key_maps/${this_element.dataset.key_map}`);
             const fromKeyMap = keyMap.notePitchToViewParams(this_element, child_data, this.fontSize / 4);
-
             return {
-                ...fromKeyMap,
+                ...fromKeyMap, // y, accidental_glyph, stem_direction, ledger_line, note_head_glyph
                 x
             }
         }
     }
 
     childViewParamsToData(this_element, child_viewParams) {
+        const keyMap = require(`./key_maps/${this_element.dataset.key_map}`);
+        const yCenter = this.getElementViewParams(this_element).y;
+        const staffLevelSpacing = this.fontSize / 8;
+        const staffLevel = (yCenter - child_viewParams.y) / staffLevelSpacing;
 
+        const pitch = keyMap.staffLevelToPitch(this_element, staffLevel);
+        return {pitch}
     }
 
 }
