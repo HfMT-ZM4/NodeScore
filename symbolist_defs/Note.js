@@ -64,17 +64,19 @@ class Note extends Template.SymbolBase
             id: `${params.id}-accidental-group`,
             child: []
         };
-        params.accidental_glyph.forEach((val, i) => {
-            accidentalGroup.child.push({
-                new: 'text',
-                class: 'Note-accidental',
-                id: `${params.id}-accidental-${i}`,
-                x: currentX,
-                y: params.y,
-                child: val
+        if (params.accidental_visible == true) {
+            params.accidental_glyph.forEach((val, i) => {
+                accidentalGroup.child.push({
+                    new: 'text',
+                    class: 'Note-accidental',
+                    id: `${params.id}-accidental-${i}`,
+                    x: currentX,
+                    y: params.y,
+                    child: val
+                });
+                currentX += ui_api.getComputedTextLength(val, 'Note-accidental Global-musicFont');
             });
-            currentX += ui_api.getComputedTextLength(val, 'Note-accidental Global-musicFont');
-        });
+        }
         returnArray.push(accidentalGroup);
         
         // note head

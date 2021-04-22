@@ -220,9 +220,9 @@ class StaffClef extends Template.SymbolBase
             }
             
             const keyMap = require(`./key_maps/${this_element.dataset.key_map}`);
-            const fromKeyMap = keyMap.notePitchToViewParams(this_element, child_data, this.fontSize / 4);
+            const fromKeyMap = keyMap.noteDataToViewParams(this_element, child_data, this.fontSize / 4);
             return {
-                ...fromKeyMap, // y, accidental_glyph, stem_direction, ledger_line, note_head_glyph
+                ...fromKeyMap, // y, accidental_glyph, accidental_visible, stem_direction, ledger_line, note_head_glyph
                 x
             }
         }
@@ -235,7 +235,7 @@ class StaffClef extends Template.SymbolBase
         const staffLevel = (yCenter - child_viewParams.y) / staffLevelSpacing;
 
         const pitch = keyMap.staffLevelToPitch(this_element, staffLevel);
-        return {pitch}
+        return { pitch }
     }
 
 }

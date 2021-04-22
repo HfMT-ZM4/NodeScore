@@ -295,15 +295,12 @@ function pitchStringDef(pitch, keySigArray = []) {
                 deviation: pitchClassDef[pitchClass].deviation
             }
         }
-        else {
-            console.error(`Note pitch '${pitch}' not identified.`);
-            return null;
-        }
     }
 
     // search for best match for accidental in case it's not defined
-    else if (typeof(pitch) == 'number') {
-        const pitchClass = (pitch + context.repeat_interval) % context.repeat_interval;
+    if (!isNaN(pitch)) {
+        const midiPitch = Number(pitch);
+        const pitchClass = (midiPitch + context.repeat_interval) % context.repeat_interval;
         let key = [...context.mode_scale];
         let keySharpness = 0; // sum of all accidentals in keysig
         // check if pitch class is included in keysig, if exists, return
@@ -311,7 +308,7 @@ function pitchStringDef(pitch, keySigArray = []) {
         for (const val of keySigArray) {
             if (val.pitch_class == pitchClass) {
                 return {
-                    pitch,
+                    pitch: midiPitch,
                     deviation: val.accidental
                 }
             }
@@ -323,22 +320,23 @@ function pitchStringDef(pitch, keySigArray = []) {
         // otherwise check if pitch class is in the key
         if (key[pitchClass] !== null) {
             return {
-                pitch,
+                pitch: midiPitch,
                 deviation: key[pitchClass]
             }
         }
         // check if it's a white key (natural)
         if (context.mode_scale[pitchClass] == 0) {
             return {
-                pitch,
+                pitch: midiPitch,
                 deviation: 0
             }
         }
         // otherwise if it's a black key, follow key sig sharpness
+        console.log('hello')
         const nextPitchClass = (pitchClass - Math.sign(keySharpness) + context.repeat_interval) % context.repeat_interval;
         if (key[nextPitchClass] !== null) {
             return {
-                pitch,
+                pitch: midiPitch,
                 deviation: key[nextPitchClass] + Math.sign(keySharpness)
             }
         }
@@ -352,6 +350,11 @@ function pitchStringDef(pitch, keySigArray = []) {
                 deviation: pitch.deviation
             }
         }
+    }
+
+    else {
+        console.error(`Note pitch '${pitch}' not identified.`);
+        return null;
     }
 }
 
@@ -436,9 +439,6 @@ function clefToPitchContext(staff_view) {
 }
 
 function accidentalAutoVisible(staff_element, note_data) {
-    if (note_data.accidental_visible != 'auto') return note_data.accidental_visible;
-    // process when 'auto'
-    return true;
     
 }
 
@@ -448,28 +448,32 @@ function accidentalAutoVisible(staff_element, note_data) {
  * @param {Element} staff_element 
  * @param {Object} note_data 
  */
-function notePitchToViewParams(staff_element, note_data, staffLineSpacing) {
+function noteDataToViewParams(staff_element, note_data, staffLineSpacing) {
+    // retrieve y from parent
     const ref = staff_element.querySelector(`.StaffClef-ref`);
     const y0 = parseFloat(ref.getAttribute('y'));
 
+    // get pitch, determine accidental
     const keySigArray = keySignatureDef(staff_element.dataset.key_signature);
     const pitchObj = pitchStringDef(note_data.pitch, keySigArray);
-    const accidental_glyph = [accidentalDef(pitchObj.deviation).glyph];
+    const accidental_glyph = [accidentalDef(pitchObj.deviation).glyph]; // to return
 
-    const searchPitch = pitchObj.pitch - pitchObj.deviation; // the pitch (white key) for searching staff level
-    const staffLevelPitchList = clefToPitchContext(staff_element.dataset); // necessary params are all in dataset
+    // determine staff level (and y)
+    const whitePitch = pitchObj.pitch - pitchObj.deviation; // the pitch as if with a natural, for searching staff level
+    const staffLevelPitchList = clefToPitchContext(staff_element.dataset); // staff level pitches without accidentals
     const tempSL = findStaffLevelForPitchClass(pitchObj.pitch, staffLevelPitchList, pitchObj, false);
-    const octaveDiff = staffLevelPitchList[tempSL] - searchPitch;
+    const octaveDiff = staffLevelPitchList[tempSL] - whitePitch;
     let staffLevel;
     if (octaveDiff % context.repeat_interval == 0) {
         staffLevel = tempSL - octaveDiff / context.repeat_interval * context.mode_steps;
     }
+    const y = y0 - staffLineSpacing / 2 * staffLevel; // to return
 
-    const y = y0 - staffLineSpacing / 2 * staffLevel;
     const staffLines = JSON.parse(staff_element.dataset.staff_line);
     const maxStaffLine = Math.max.apply(null, staffLines);
     const minStaffLine = Math.min.apply(null, staffLines);
     const midStaffLevel = maxStaffLine + minStaffLine; // avg *2
+    /*
     let clef;
     try {
         clef = JSON.parse(staff_element.dataset.clef);
@@ -477,14 +481,13 @@ function notePitchToViewParams(staff_element, note_data, staffLineSpacing) {
     catch(e) {
         clef = staff_element.dataset.clef;
     }
+    */
 
     // determine stem direction
     let stem_direction;
     if (note_data.stem_direction == 'auto') {
-        if (!Array.isArray(clef)) {
-            if (staffLevel > midStaffLevel) stem_direction = 'down';
-            else stem_direction = 'up';
-        }
+        if (staffLevel > midStaffLevel) stem_direction = 'down';
+        else stem_direction = 'up';
     }
     else stem_direction = note_data.stem_direction;
 
@@ -497,9 +500,38 @@ function notePitchToViewParams(staff_element, note_data, staffLineSpacing) {
         ledger_line.push(l * 2 - staffLevel);
     }
 
+    // accidental visibility
+    let accidental_visible
+    if (note_data.accidental_visible != 'auto') accidental_visible = note_data.accidental_visible;
+    // process when 'auto'
+    else {
+        let currentStaffLevelPitch = whitePitch;
+        for (keyObj of keySigArray) {
+            // match white pitch to key signature pitch class
+            if ((whitePitch - keyObj.pitch_class + keyObj.accidental) % context.repeat_interval == 0) {
+                currentStaffLevelPitch += keyObj.accidental;
+                break;
+            }
+        }
+        // iterate notes before current
+        const children = staff_element.querySelector('.contents').children;
+        for (let i = 0; i < children.length; i++) {
+            if (children[i].id == note_data.id) break; // if note already exists
+            const noteHead = children[i].querySelector('.Note-note_head');
+            if (noteHead.getAttribute('y') == y) {
+                currentStaffLevelPitch = pitchStringDef(children[i].dataset.pitch, keySigArray).pitch;
+            }
+        }
+        // finally, check if current accidental is same
+        if (currentStaffLevelPitch == pitchObj.pitch) accidental_visible = false;
+        else accidental_visible = true;
+        
+    }
+
     return {
         y,
         accidental_glyph,
+        accidental_visible,
         stem_direction,
         ledger_line,
         note_head_glyph: ''
@@ -516,7 +548,6 @@ function staffLevelToPitch(staff_element, staff_level) {
     const clefPitch = clefDef[staff_element.dataset.clef].pitch;
     const clefStaffLevel = Number(staff_element.dataset.clef_anchor) * 2;
     const staffLevelOffset = staff_level - clefStaffLevel;
-    console.log('staffLevelOffset', staffLevelOffset)
     let pitch = clefPitch + staffLevelOffset * context.repeat_interval / context.mode_steps;
     pitch = Math.round(pitch / context.step_size) * context.step_size;
 
@@ -563,7 +594,7 @@ module.exports = {
     keySignatureDef,
     accidentalDef,
     accidentalAutoVisible,
-    notePitchToViewParams,
+    noteDataToViewParams,
     staffLevelToPitch,
     keySignatureDisplay
 }
