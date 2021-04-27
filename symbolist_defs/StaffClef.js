@@ -21,7 +21,7 @@ class StaffClef extends Template.SymbolBase
                 clef: 'G',
                 clef_anchor: -1,
                 clef_visible: 'auto',
-                key_map: '12ED2',
+                key_map: '24EDO',
                 key_signature: 'none',
                 key_signature_visible: 'auto'
             },
@@ -36,7 +36,7 @@ class StaffClef extends Template.SymbolBase
                 clef: 'G',
                 clef_anchor: -1,
                 clef_visible: 'auto',
-                key_map: '12ED2',
+                key_map: '24EDO',
                 key_signature: 'none',
                 key_signature_visible: 'auto'
             },

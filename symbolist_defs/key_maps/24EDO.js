@@ -1,10 +1,11 @@
 const context = {
-    about: '12 Tone Equal Temperament',
-    steps: 12,
-    step_size: 1,
+    about: '24 Tone Equal Temperament',
+    steps: 24,
+    step_size: 0.5,
+    input_step_size: 1,
     repeat_interval: 12,
     dominant_interval: 7,
-    mode_scale: [0, null, 0, null, 0, 0, null, 0, null, 0, null, 0], // accidental deviation if not in scale
+    mode_scale: [0, null, null, null, 0, null, null, null, 0, null, 0, null, null, null, 0, null, null, null, 0, null, null, null, 0, null], // accidental deviation if not in scale
     mode_steps: 7,
     tonic: 0
 }
@@ -127,74 +128,59 @@ function keySignatureDef(key) {
 }
 
 function accidentalDef(acc) {
-    if (typeof(acc) == 'number') acc = acc.toString();
-    switch (acc) {
-        // flat
-        case '-1':
-        case 'b':
-        case 'flat':
-            return { glyph: '', deviation: -1 };
-        // natural
-        case '0':
-        case 'n':
-        case 'natural':
-            return { glyph: '', deviation: 0 };
-        //sharp
-        case '1':
-        case '#':
-        case 'sharp':
-            return { glyph : '', deviation: 1 };
-        //double sharp
-        case '2':
-        case 'x':
-        case '##':
-        case '2#':
-        case 'doublesharp':
-            return { glyph: '', deviation: 2 };
-        //double flat
-        case '-2':
-        case 'bb':
-        case '2b':
-        case 'doubleflat':
-            return { glyph: '', deviation: -2 };
-        //triple sharp
-        case '3':
-        case '#x':
-        case '###':
-        case '3#':
-        case 'triplesharp':
-            return { glyph: '', deviation: 3 };
-        //triple flat
-        case '-3':
-        case 'bbb':
-        case '3b':
-        case 'tripleflat': 
-            return { glyph: '', deviation: -3 };
-        //natural flat
-        case 'nb':
-        case 'naturalflat':
-            return { glyph: '', deviation: -1 };
-        //natural sharp
-        case 'n#':
-        case 'naturalsharp':
-            return { glyph: '', deviation: 1 };
-        //parentheses
-        case '(b)':
-        case '(flat)':
-            return { glyph: '', deviation: -1 };
-        case '(natural)':
-            return { glyph: '', deviation: 0 };
-        case '(#)':
-        case '(sharp)':
-            return { glyph: '', deviation: 1 };
-        case '(x)':
-        case '(doublesharp)':
-            return { glyph: '', deviation: 2 };
-        case '(bb)':
-        case '(doubleflat)':
-            return { glyph: '', deviation: -2 };
-        default:
-            return { glyph: '', deviation: 0 };
+    let deviation = 0;
+    if (!isNaN(acc)) deviation = Number(acc);
+    else if (typeof(acc) == 'string') {
+        let accString = acc;
+        let multiplier = 1;
+        // template for the following parsing
+        function parseAccidental(subString, dev, mul) {
+            while(accString.includes(subString)) {
+                deviation += dev;
+                multiplier *= mul;
+                accString = accString.replace(subString, '');
+            }
+        }
+        parseAccidental('flat', -1, 1);
+        parseAccidental('sharp', 1, 1);
+        parseAccidental('natural', 0, 1);
+        parseAccidental('#', 1, 1);
+        parseAccidental('double', 0, 2);
+        parseAccidental('triple', 0, 3);
+        parseAccidental('half', 0, 0.5);
+        parseAccidental('x', 2, 1);
+        parseAccidental('n', 0, 1);
+        parseAccidental('b', -1, 1);
+        parseAccidental('d', -0.5, 1);
+        parseAccidental('-', -0.5, 1);
+        parseAccidental('+', 0.5, 1);
+
+        deviation *= multiplier;
+        if (accString != '' && accString != '()') {
+            console.error(`Warning: Accidental '${acc}' parsed as ${deviation} semitones`);
+        }
+    }
+    const glyphs = {
+        '0': '',
+        '0.5': '',
+        '1': '',
+        '1.5': '',
+        '2': '',
+        '3': '',
+        '-0.5': '',
+        '-1': '',
+        '-1.5': '',
+        '-2': '',
+        '-3': ''
+    }
+    if (deviation in glyphs) {
+        return {
+            glyph: glyphs[deviation],
+            deviation
+        }
+    }
+    else {
+        console.error(`No glyph found for accidental deviation ${deviation}`);
     }
 }
 
@@ -299,7 +285,7 @@ function pitchStringDef(pitch, keySigArray = []) {
 
     // search for best match for accidental in case it's not defined
     if (!isNaN(pitch)) {
-        const midiPitch = Number(pitch);
+        const midiPitch = Math.round(Number(pitch) / context.step_size) * context.step_size;
         const pitchClass = (midiPitch + context.repeat_interval) % context.repeat_interval;
         let key = [...context.mode_scale];
         let keySharpness = 0; // sum of all accidentals in keysig
@@ -312,33 +298,34 @@ function pitchStringDef(pitch, keySigArray = []) {
                     deviation: val.accidental
                 }
             }
-            const whiteKeyPitchClass = (val.pitch_class - val.deviation + context.repeat_interval) % context.repeat_interval;
-            key[whiteKeyPitchClass] = null;
-            key[val.pitch_class] = val.deviation;
-            keySharpness += val.deviation;
+            const whiteKeyPitchClass = (val.pitch_class - val.accidental + context.repeat_interval) % context.repeat_interval;
+            key[whiteKeyPitchClass/context.step_size] = null;
+            key[val.pitch_class/context.step_size] = val.accidental;
+            keySharpness += val.accidental;
         }
         // otherwise check if pitch class is in the key
-        if (key[pitchClass] !== null) {
+        if (key[pitchClass/context.step_size] !== null) {
             return {
                 pitch: midiPitch,
                 deviation: key[pitchClass]
             }
         }
         // check if it's a white key (natural)
-        if (context.mode_scale[pitchClass] == 0) {
+        if (context.mode_scale[pitchClass/context.step_size] == 0) {
             return {
                 pitch: midiPitch,
                 deviation: 0
             }
         }
         // otherwise if it's a black key, follow key sig sharpness
-        console.log('hello')
-        const nextPitchClass = (pitchClass - Math.sign(keySharpness) + context.repeat_interval) % context.repeat_interval;
-        if (key[nextPitchClass] !== null) {
-            return {
-                pitch: midiPitch,
-                deviation: key[nextPitchClass] + Math.sign(keySharpness)
-            }
+        let tempDeviation = 0;
+        //console.log('next key', context.mode_scale[(pitchClass - tempDeviation + context.repeat_interval) % context.repeat_interval / context.step_size])
+        while (context.mode_scale[(pitchClass - tempDeviation + context.repeat_interval) % context.repeat_interval / context.step_size] === null) {
+            tempDeviation += Math.sign(keySharpness) * context.step_size;
+        }
+        return {
+            pitch: midiPitch,
+            deviation: tempDeviation
         }
     }
 
@@ -422,7 +409,7 @@ function clefToPitchContext(staff_view) {
     let currentPitch = clefPitch;
     for (let i = clefStaffLevel + 1; i <= maxStaffLevel; i++) {
         currentPitch += context.step_size;
-        while (context.mode_scale[currentPitch % context.repeat_interval] === null) {
+        while (context.mode_scale[(currentPitch % context.repeat_interval) / context.step_size] === null) {
             currentPitch += context.step_size;
         }
         returnObj[i] = currentPitch;
@@ -430,16 +417,12 @@ function clefToPitchContext(staff_view) {
     currentPitch = clefPitch;
     for (let i = clefStaffLevel - 1; i >= minStaffLevel; i--) {
         currentPitch -= context.step_size;
-        while (context.mode_scale[currentPitch % context.repeat_interval] === null) {
+        while (context.mode_scale[(currentPitch % context.repeat_interval) / context.step_size] === null) {
             currentPitch -= context.step_size;
         }
         returnObj[i] = currentPitch;
     }
     return returnObj;
-}
-
-function accidentalAutoVisible(staff_element, note_data) {
-    
 }
 
 /**
@@ -501,7 +484,7 @@ function noteDataToViewParams(staff_element, note_data, staffLineSpacing) {
     }
 
     // accidental visibility
-    let accidental_visible
+    let accidental_visible;
     if (note_data.accidental_visible != 'auto') accidental_visible = note_data.accidental_visible;
     // process when 'auto'
     else {
@@ -549,7 +532,7 @@ function staffLevelToPitch(staff_element, staff_level) {
     const clefStaffLevel = Number(staff_element.dataset.clef_anchor) * 2;
     const staffLevelOffset = staff_level - clefStaffLevel;
     let pitch = clefPitch + staffLevelOffset * context.repeat_interval / context.mode_steps;
-    pitch = Math.round(pitch / context.step_size) * context.step_size;
+    pitch = Math.round(pitch / context.input_step_size) * context.input_step_size;
 
     return pitch;
 }
@@ -593,7 +576,6 @@ module.exports = {
     clefDef,
     keySignatureDef,
     accidentalDef,
-    accidentalAutoVisible,
     noteDataToViewParams,
     staffLevelToPitch,
     keySignatureDisplay
