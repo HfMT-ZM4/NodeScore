@@ -1,4 +1,5 @@
-const Template = require(__symbolist_dirname + '/lib/SymbolTemplate') 
+const Template = require('../SymbolTemplate');
+const lib = require('./NodeScoreLib');
 
 class Part extends Template.SymbolBase 
 {
@@ -31,6 +32,40 @@ class Part extends Template.SymbolBase
     }
 
     drag(element, pos){}
+
+    selected(element, state) {
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateSelected",
+                id: element.id,
+                state: state
+            }
+        });
+    }
+    
+    currentContext( element, enable = false ) 
+    {
+        console.log(this.class, " is context ", enable);
+        if( enable )
+        {
+            this.m_mode = 'context';
+        }
+        else
+        {
+            this.m_mode = "exited context";
+        }
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateContext",
+                id: element.id,
+                enable
+            }
+        });
+    }
 
     display(params) {
 

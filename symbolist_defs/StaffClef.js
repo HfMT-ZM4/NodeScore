@@ -1,4 +1,5 @@
-const Template = require(__symbolist_dirname + '/lib/SymbolTemplate') 
+const Template = require('../SymbolTemplate');
+const lib = require('./NodeScoreLib');
 
 
 class StaffClef extends Template.SymbolBase 
@@ -6,7 +7,7 @@ class StaffClef extends Template.SymbolBase
     constructor() {
         super();
         this.class = 'StaffClef';
-        this.palette = ['Note'];
+        this.palette = ['Note', 'RhythmGroup'];
         this.fontSize = 24;
     }
 
@@ -50,6 +51,40 @@ class StaffClef extends Template.SymbolBase
 
     drag(element, pos){}
 
+    selected(element, state) {
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateSelected",
+                id: element.id,
+                state: state
+            }
+        });
+    }
+
+    currentContext( element, enable = false ) 
+    {
+        console.log(this.class, " is context ", enable);
+        if( enable )
+        {
+            this.m_mode = 'context';
+        }
+        else
+        {
+            this.m_mode = "exited context";
+        }
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateContext",
+                id: element.id,
+                enable
+            }
+        });
+    }
+    
     display(params) {
         //console.log('params', params);
         ui_api.hasParam(params, Object.keys(this.structs.view) );
@@ -191,11 +226,11 @@ class StaffClef extends Template.SymbolBase
     }
 
     childDataToViewParams(this_element, child_data) {
+        let x, y;
         if (child_data.class == 'Note') {
             const clefKeyGroup = this_element.querySelector('.StaffClef-clef_key-group');
 
             // initialize x, start from the right of timeSig/clefKey if visible
-            let x;
             const container = ui_api.getContainerForElement(this_element);
             const timeSigGroup = container.querySelector('.Measure-timeSig-group');
             const children = this_element.querySelector('.contents').children;
@@ -218,12 +253,48 @@ class StaffClef extends Template.SymbolBase
             else {
                 x = this.getElementViewParams(this_element).x;
             }
-            
             const keyMap = require(`./key_maps/${this_element.dataset.key_map}`);
             const fromKeyMap = keyMap.noteDataToViewParams(this_element, child_data, this.fontSize / 4);
+            const x_after_note = x + lib.getComputedTextLength(fromKeyMap.note_head_glyph, 'Note-note_head Global-musicFont');
             return {
                 ...fromKeyMap, // y, accidental_glyph, accidental_visible, stem_direction, ledger_line, note_head_glyph
-                x
+                x,
+                beam_flag: true,
+                x_after_note
+            }
+        }
+        else if (child_data.class == 'RhythmGroup') {
+            const clefKeyGroup = this_element.querySelector('.StaffClef-clef_key-group');
+
+            // initialize x, start from the right of timeSig/clefKey if visible
+            const container = ui_api.getContainerForElement(this_element);
+            const timeSigGroup = container.querySelector('.Measure-timeSig-group');
+            const children = this_element.querySelector('.contents').children;
+            let group_exist;
+            if (children.length > 0 ) {
+                try { // check if this rhythm group already exists
+                    group_exist = document.getElementById(child_data.id);
+                    x = ui_api.getBBoxAdjusted(group_exist).left;
+                }
+                catch (e) {
+                    const lastChild = children[children.length-1];
+                    x = ui_api.getBBoxAdjusted(lastChild).right;
+                }
+            }
+            else if (timeSigGroup) {
+                x = ui_api.getBBoxAdjusted(timeSigGroup).right;
+            }
+            else if (clefKeyGroup.childNodes.length > 0) {
+                x = ui_api.getBBoxAdjusted(clefKeyGroup).right;
+            }
+            else {
+                x = this.getElementViewParams(this_element).x;
+            }
+            y = this.getElementViewParams(this_element).y;
+
+            return {
+                x,
+                y
             }
         }
     }

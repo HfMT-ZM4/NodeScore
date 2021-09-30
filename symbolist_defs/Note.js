@@ -1,4 +1,5 @@
-const Template = require(__symbolist_dirname + '/lib/SymbolTemplate') 
+const Template = require('../SymbolTemplate');
+const lib = require('./NodeScoreLib');
 
 
 class Note extends Template.SymbolBase 
@@ -6,23 +7,24 @@ class Note extends Template.SymbolBase
     constructor() {
         super();
         this.class = 'Note';
-        this.palette = [];
+        this.palette = ['Graphic'];
         this.fontSize = 24;
     }
 
 
     get structs () {
         return {
-
+ 
             data: {
                 class: this.class,
                 id : `${this.class}-0`,
-                grace: false,
                 pitch: 60,
-                duration: 1,
+                value: 1,
+                amplitude: 1,
                 hold: 1,
                 note_head_family: 'auto',
                 stem_direction: 'auto',
+                stem_visible: 'auto',
                 accidental_visible: 'auto'
             },
             
@@ -31,13 +33,17 @@ class Note extends Template.SymbolBase
                 id: `${this.class}-0`, 
                 x: 100,
                 y: 100,
-                grace: false,
-                note_head_glyph: 'auto',
                 accidental_glyph: [],
                 accidental_visible: 'auto',
+                ledger_line: [],
+                note_head_glyph: 'auto',
+                stem_visible: 'auto',
                 stem_height: 4,
                 stem_direction: 'auto',
-                ledger_line: []
+                beams: 0,
+                beam_flag: 'auto',
+                dots: 0,
+                dots_displace: false
             },
             
             children: {
@@ -49,6 +55,40 @@ class Note extends Template.SymbolBase
 
     drag(element, pos){}
 
+    selected(element, state) {
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateSelected",
+                id: element.id,
+                state: state
+            }
+        });
+    }
+
+    currentContext( element, enable = false ) 
+    {
+        console.log(this.class, " is context ", enable);
+        if( enable )
+        {
+            this.m_mode = 'context';
+        }
+        else
+        {
+            this.m_mode = "exited context";
+        }
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateContext",
+                id: element.id,
+                enable
+            }
+        });
+    }
+    
     display(params) {
         const staffLineSpacing = this.fontSize / 4;
 
@@ -74,7 +114,7 @@ class Note extends Template.SymbolBase
                     y: params.y,
                     child: val
                 });
-                currentX += ui_api.getComputedTextLength(val, 'Note-accidental Global-musicFont');
+                currentX += lib.getComputedTextLength(val, 'Note-accidental Global-musicFont');
             });
         }
         returnArray.push(accidentalGroup);
@@ -95,10 +135,12 @@ class Note extends Template.SymbolBase
             child: params.note_head_glyph
         });
         const xBeforeNoteHead = currentX;
-        currentX += ui_api.getComputedTextLength(params.note_head_glyph, 'Note-note_head Global-musicFont');
+        console.log('computed text length', lib.getComputedTextLength(params.note_head_glyph, 'Global-musicFont'));
+        currentX += lib.getComputedTextLength(params.note_head_glyph, 'Note-note_head Global-musicFont');
+        
         returnArray.push(noteHeadGroup);
 
-        // ledger lines
+        // ledger lines -> drawn in parent
         let ledgerLineGroup = {
             new: 'g',
             class: 'Note-ledger_line-group',
@@ -117,28 +159,82 @@ class Note extends Template.SymbolBase
             });
         });
         returnArray.push(ledgerLineGroup);
-        
-        // stem
-        if (params.stem_height != 0) {
-            let stemDirectionFactor, stemX;
+
+        // stem -> drawn in parent
+        let stemDirectionFactor = -1;
+        let stemX = currentX;
+        let stemEndY = params.y;
+        const stemWidth = 1.5;
+        if (params.stem_height != 0 && params.stem_visible != false) {
             if (params.stem_direction == 'down') {
-                stemDirectionFactor = -1;
+                stemDirectionFactor = 1;
                 stemX = xBeforeNoteHead;
             }
-            else {
-                stemDirectionFactor = 1;
-                stemX = currentX;
-            }
+            stemEndY = params.y + staffLineSpacing * stemDirectionFactor * params.stem_height;
             returnArray.push({
-                new: 'line',
+                new: 'rect',
                 class: 'Note-stem',
                 id: `${params.id}-stem`,
-                x1: stemX,
-                y1: params.y - staffLineSpacing * stemDirectionFactor * params.stem_height,
-                x2: stemX,
-                y2: params.y
+                x: Math.min(stemX, stemX + stemDirectionFactor * stemWidth),
+                y: Math.min(params.y, stemEndY),
+                width: stemWidth,
+                height: Math.abs(params.y - stemEndY),
+                'data-stem_end_y': stemEndY
             });
         }
+        else {
+            returnArray.push({
+                new: 'g',
+                class: 'Note-stem',
+                id: `${params.id}-stem`
+            });
+        }
+
+        // flags -> drawn in parent
+        let flagGroup = {
+            new: 'g',
+            class: 'Note-flag-group',
+            id: `${params.id}-flag-group`,
+            'data-num_beams': params.beams,
+            child: []
+        };
+        if (params.beam_flag) {
+            if (params.beams > 0 && params.beams <= 8) {
+                flagGroup.child.push({
+                    new: 'text',
+                    class: 'Note-flag Global-musicFont',
+                    id: `${params.id}-flag`,
+                    x: stemX - (params.stem_direction == 'down' ? 0 : stemWidth),
+                    y: stemEndY,
+                    child: lib.smufl.flag[params.beams][(params.stem_direction == 'down' ? 'down' : 'up')]
+                });
+            }
+            else {
+                console.error(`${params.id}: ${params.beams} beams not supported`);
+            }
+        }
+        returnArray.push(flagGroup);
+
+        // dots
+        let dotGroup = {
+            new: 'g',
+            class: 'Note-dot-group',
+            id: `${params.id}-dot-group`,
+            'data-num-dots': params.dots,
+            child: []
+        };
+        for (let i = 0; i < params.dots; i++) {
+            dotGroup.child.push({
+                new: 'text',
+                class: 'Note-dot Global-musicFont',
+                id: `${params.id}-dot-${i}`,
+                x: currentX,
+                y: params.y - (params.dots_displace ? staffLineSpacing / 2 : 0),
+                child: lib.smufl.dot
+            });
+            currentX += lib.getComputedTextLength('', 'Note-dot Global-musicFont');
+        }
+        returnArray.push(dotGroup);
         
         return returnArray;
     }
@@ -178,10 +274,42 @@ class Note extends Template.SymbolBase
     }
 
     childDataToViewParams(this_element, child_data) {
+        if (child_data.class == 'Graphic') {
+            const x = this.getElementViewParams(this_element).x;
+            const y = this.getElementViewParams(this_element).y - 50;
+            return {x, y}
+        }
     }
 
     childViewParamsToData(this_element, child_viewParams) {
 
+    }
+
+    creatNewFromMouseEvent(event)
+    {
+        // remove preview sprite
+        ui_api.drawsocketInput({
+            key: "remove", 
+            val: `${this.class}-sprite`
+        })
+
+        // generate objectData from Mouse Event
+        const container = ui_api.getCurrentContext();
+        let data =  this.mouseToData(event, container);
+        
+        this.fromData(data, container);
+
+        // send new object to server
+        ui_api.sendToServer({
+            key: "data",
+            val: data
+        })
+
+        // call parent updateAfterContents function
+        const parentDef = ui_api.getDefForElement(container);
+        parentDef.updateAfterContents(container);
+
+        return data;
     }
 
 }

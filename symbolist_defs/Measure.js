@@ -1,4 +1,5 @@
-const Template = require(__symbolist_dirname + '/lib/SymbolTemplate') 
+const Template = require('../SymbolTemplate');
+const lib = require('./NodeScoreLib');
 
 class Measure extends Template.SymbolBase 
 {
@@ -8,19 +9,6 @@ class Measure extends Template.SymbolBase
         this.palette = ['StaffClef'];
         this.fontSize = 24;
         this.minBarlineHeight = this.fontSize / 2;
-        this.timeSigGlyphs = {
-            '0': '',
-            '1': '',
-            '2': '',
-            '3': '',
-            '4': '',
-            '5': '',
-            '6': '',
-            '7': '',
-            '8': '',
-            '9': '',
-            plus: '+'
-        };
     }
 
 
@@ -66,6 +54,40 @@ class Measure extends Template.SymbolBase
             }
         }
     }
+    
+    selected(element, state) {
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateSelected",
+                id: element.id,
+                state: state
+            }
+        });
+    }
+
+    currentContext( element, enable = false ) 
+    {
+        console.log(this.class, " is context ", enable);
+        if( enable )
+        {
+            this.m_mode = 'context';
+        }
+        else
+        {
+            this.m_mode = "exited context";
+        }
+        ui_api.sendToServer({ 
+            key:"call", 
+            val: {
+                class: "NodeScoreAPI", 
+                method: "updateContext",
+                id: element.id,
+                enable
+            }
+        });
+    }
 
     drag(element, pos){}
 
@@ -103,7 +125,7 @@ class Measure extends Template.SymbolBase
                     new: 'text',
                     id: `${params.id}-timeSig-top`,
                     class: 'Measure-timeSig-top Global-musicFont',
-                    child: this.timeSigGlyphs[params.time_signature[0]],
+                    child: lib.smufl.timeSignature[params.time_signature[0]],
                     x: currentX,
                     y: params.y-this.fontSize/4
                 },
@@ -111,7 +133,7 @@ class Measure extends Template.SymbolBase
                     new: 'text',
                     id: `${params.id}-timeSig-bottom`,
                     class: 'Measure-timeSig-bottom Global-musicFont',
-                    child: this.timeSigGlyphs[params.time_signature[1]],
+                    child: lib.smufl.timeSignature[params.time_signature[1]],
                     x: currentX,
                     y: params.y+this.fontSize/4
                 }]
@@ -160,6 +182,7 @@ class Measure extends Template.SymbolBase
     getElementViewParams(element) {
 
         const ref = element.querySelector(`.Measure-ref`);
+        //window.max.outlet("post", 'ref', ref);
         const x = parseFloat(ref.getAttribute('x'));
         const y = parseFloat(ref.getAttribute('y'));
         const width = parseFloat(ref.getAttribute('width'));
@@ -218,6 +241,7 @@ class Measure extends Template.SymbolBase
     childDataToViewParams(this_element, child_data) {
         const x = this.getElementViewParams(this_element).x;
         const y = this.getElementViewParams(this_element).y;
+        //window.max.outlet("post", child_data.id, 'x, y', x, y);
         const staff_line_width = this.getElementViewParams(this_element).width;
 
         let clef_visible = child_data.clef_visible;

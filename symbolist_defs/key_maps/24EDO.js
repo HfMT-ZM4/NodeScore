@@ -1,3 +1,5 @@
+const lib = require('../NodeScoreLib');
+
 const context = {
     about: '24 Tone Equal Temperament',
     steps: 24,
@@ -12,7 +14,7 @@ const context = {
 const clefDef = {
     G: {
         pitch: 67,
-        glyph: '&#xE050',
+        glyph: lib.smufl.clef.G,
         key_signature_centroid: {
             '1': 4,
             '-1': 2
@@ -20,7 +22,7 @@ const clefDef = {
     },
     C: {
         pitch: 60,
-        glyph: '&#xE05C',
+        glyph: lib.smufl.clef.C,
         key_signature_centroid: {
             '1': 1,
             '-1': -1
@@ -28,18 +30,82 @@ const clefDef = {
     },
     F: {
         pitch: 53,
-        glyph: '&#xE062',
+        glyph: lib.smufl.clef.F,
         key_signature_centroid: {
             '1': -2,
             '-1': -4
         }
     },
-    G8vb: {
+    'G-8': {
         pitch: 55,
-        glyph: '&#xE052',
+        glyph: lib.smufl.clef['G-8'],
         key_signature_centroid: {
             '1': 4,
             '-1': 2
+        }
+    },
+    'G+8': {
+        pitch: 79,
+        glyph: lib.smufl.clef['G+8'],
+        key_signature_centroid: {
+            '1': 4,
+            '-1': 2
+        }
+    },
+    'G-15': {
+        pitch: 43,
+        glyph: lib.smufl.clef['G-15'],
+        key_signature_centroid: {
+            '1': 4,
+            '-1': 2
+        }
+    },
+    'G+15': {
+        pitch: 91,
+        glyph: lib.smufl.clef['G+15'],
+        key_signature_centroid: {
+            '1': 4,
+            '-1': 2
+        }
+    },
+    'C-8': {
+        pitch: 48,
+        glyph: lib.smufl.clef['C-8'],
+        key_signature_centroid: {
+            '1': 1,
+            '-1': -1
+        }
+    },
+    'F-8': {
+        pitch: 55,
+        glyph: lib.smufl.clef['F-8'],
+        key_signature_centroid: {
+            '1': -2,
+            '-1': -4
+        }
+    },
+    'F+8': {
+        pitch: 79,
+        glyph: lib.smufl.clef['F+8'],
+        key_signature_centroid: {
+            '1': -2,
+            '-1': -4
+        }
+    },
+    'F-15': {
+        pitch: 43,
+        glyph: lib.smufl.clef['F-15'],
+        key_signature_centroid: {
+            '1': -2,
+            '-1': -4
+        }
+    },
+    'F+15': {
+        pitch: 91,
+        glyph: lib.smufl.clef['F+15'],
+        key_signature_centroid: {
+            '1': -2,
+            '-1': -4
         }
     }
 }
@@ -160,19 +226,7 @@ function accidentalDef(acc) {
             console.error(`Warning: Accidental '${acc}' parsed as ${deviation} semitones`);
         }
     }
-    const glyphs = {
-        '0': '',
-        '0.5': '',
-        '1': '',
-        '1.5': '',
-        '2': '',
-        '3': '',
-        '-0.5': '',
-        '-1': '',
-        '-1.5': '',
-        '-2': '',
-        '-3': ''
-    }
+    const glyphs = lib.smufl.accidental;
     if (deviation in glyphs) {
         return {
             glyph: glyphs[deviation],
@@ -426,12 +480,111 @@ function clefToPitchContext(staff_view) {
 }
 
 /**
+ * Called by childViewParamsToData in StaffClef.js
+ * 
+ * @param {Element} staff_element 
+ * @param {Number} staff_level can be a float, retrieved from mouse position
+ */
+function staffLevelToPitch(staff_element, staff_level) {
+    const clefPitch = clefDef[staff_element.dataset.clef].pitch;
+    const clefStaffLevel = Number(staff_element.dataset.clef_anchor) * 2;
+    const staffLevelOffset = staff_level - clefStaffLevel;
+    let pitch = clefPitch + staffLevelOffset * context.repeat_interval / context.mode_steps;
+    pitch = Math.round(pitch / context.input_step_size) * context.input_step_size;
+
+    return pitch;
+}
+
+/**
+ * Called by display in StaffClef.js
+ * @param {Object} staff_view 
+ * @returns {Array} drawsocket group for key signature display
+ */
+function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
+    let svgGroup = {
+        new: 'g',
+        class: 'StaffClef-key_signature-group',
+        id: `${staff_view.id}-key_signature-group`,
+        child: []
+    };
+
+    if (staff_view.key_signature == 'none' || staff_view.key_signature == 'C' || staff_view.key_signature == 'Am') return svgGroup;
+
+    const keySigArray = keySignatureDef(staff_view.key_signature);
+    const clefStaffLevel = (staff_view.clef_anchor[0] || staff_view.clef_anchor) * 2;
+    const clefCentroid = clefStaffLevel + clefDef[staff_view.clef].key_signature_centroid[keySigArray[0].accidental];
+    const accidentalSpacing = staff_line_spacing;
+    const staffLevelPitchList = clefToPitchContext(staff_view);
+    keySigArray.forEach((obj, ind) => {
+        svgGroup.child.push({
+            new: 'text',
+            class: 'StaffClef-key_signature Global-musicFont',
+            id: `${staff_view.id}-key_signature-${ind}`,
+            x: x_offset + ind * accidentalSpacing,
+            y: staff_view.y - staff_line_spacing / 2 * findStaffLevelForPitchClass(obj.pitch_class, staffLevelPitchList, accidentalDef(obj.accidental), true, clefCentroid),
+            child: accidentalDef(obj.accidental).glyph
+        });
+    });
+
+    return svgGroup;
+}
+
+function noteValueToGlyph(value) {
+    const maxDots = 6;
+    let noteHead;
+    let stemVisible = false;
+    let beams = 0;
+    let dots = 0;
+    let currentValue;
+    if (value >= 16 || value <= 0) {
+        console.log('Note value invalid:',value);
+    }
+    else if (value >= 8) {
+        noteHead = 'doubleWhole';
+        currentValue = 8;
+    }
+    else if (value >= 4) {
+        noteHead = 'whole';
+        currentValue = 4;
+    }
+    else {
+        stemVisible = true;
+        if (value >= 2) {
+            noteHead = 'half';
+            currentValue = 2;
+        }
+        else {
+            noteHead = 'black';
+            currentValue = 1;
+            while (value < currentValue) {
+                currentValue /= 2;
+                beams++;
+            }
+        }
+    }
+    // add dots
+    let dotValue = currentValue;
+    while (value > currentValue && dots < maxDots) {
+        dotValue /= 2;
+        currentValue += dotValue;
+        dots++;
+    }
+
+    return {
+        noteHead,
+        stemVisible,
+        beams,
+        dots
+    }
+}
+
+/**
  * Called by childDataToViewParams in StaffClef.js, returns note view params y, accidental
  * 
  * @param {Element} staff_element 
  * @param {Object} note_data 
  */
-function noteDataToViewParams(staff_element, note_data, staffLineSpacing) {
+ function noteDataToViewParams(staff_element, note_data, staffLineSpacing) {
     // retrieve y from parent
     const ref = staff_element.querySelector(`.StaffClef-ref`);
     const y0 = parseFloat(ref.getAttribute('y'));
@@ -497,78 +650,53 @@ function noteDataToViewParams(staff_element, note_data, staffLineSpacing) {
             }
         }
         // iterate notes before current
-        const children = staff_element.querySelector('.contents').children;
-        for (let i = 0; i < children.length; i++) {
-            if (children[i].id == note_data.id) break; // if note already exists
-            const noteHead = children[i].querySelector('.Note-note_head');
-            if (noteHead.getAttribute('y') == y) {
-                currentStaffLevelPitch = pitchStringDef(children[i].dataset.pitch, keySigArray).pitch;
+        function iterateAccidentals(el) {
+            const children = el.querySelector('.contents').children;
+            for (let i = 0; i < children.length; i++) {
+                if (children[i].id == note_data.id) return; // if note already exists
+                if (children[i].classList[0] == 'Note') {
+                    const noteHead = children[i].querySelector('.Note-note_head');
+                    if (noteHead.getAttribute('y') == y) {
+                        currentStaffLevelPitch = pitchStringDef(children[i].dataset.pitch, keySigArray).pitch;
+                    }
+                }
+                else if (children[i].classList[0] == 'RhythmGroup') iterateAccidentals(children[i]);
             }
         }
+        iterateAccidentals(staff_element);
+
         // finally, check if current accidental is same
         if (currentStaffLevelPitch == pitchObj.pitch) accidental_visible = false;
         else accidental_visible = true;
         
     }
 
+    // rhythm
+    const value = note_data.value;
+    const noteDisplay = noteValueToGlyph(value);
+    let stem_visible;
+    if (note_data.stem_visible == 'auto') {
+        stem_visible = noteDisplay.stemVisible;
+    }
+    else {
+        stem_visible = note_data.stem_visible;
+    }
+    const beams = noteDisplay.beams;
+    const note_head_glyph = lib.smufl.noteHead[note_data.note_head_family][noteDisplay.noteHead];
+    const dots = noteDisplay.dots;
+    const dots_displace = (staffLevel % 2 == 0);
     return {
         y,
         accidental_glyph,
         accidental_visible,
         stem_direction,
+        stem_visible,
+        beams,
+        dots,
+        dots_displace,
         ledger_line,
-        note_head_glyph: ''
+        note_head_glyph
     }
-}
-
-/**
- * Called by childViewParamsToData in StaffClef.js
- * 
- * @param {Element} staff_element 
- * @param {Number} staff_level can be a float, retrieved from mouse position
- */
-function staffLevelToPitch(staff_element, staff_level) {
-    const clefPitch = clefDef[staff_element.dataset.clef].pitch;
-    const clefStaffLevel = Number(staff_element.dataset.clef_anchor) * 2;
-    const staffLevelOffset = staff_level - clefStaffLevel;
-    let pitch = clefPitch + staffLevelOffset * context.repeat_interval / context.mode_steps;
-    pitch = Math.round(pitch / context.input_step_size) * context.input_step_size;
-
-    return pitch;
-}
-
-/**
- * Called by display in StaffClef.js
- * @param {Object} staff_view 
- * @returns {Array} drawsocket group for key signature display
- */
-function keySignatureDisplay(staff_view, x_offset, staff_line_spacing) {
-    let svgGroup = {
-        new: 'g',
-        class: 'StaffClef-key_signature-group',
-        id: `${staff_view.id}-key_signature-group`,
-        child: []
-    };
-
-    if (staff_view.key_signature == 'none' || staff_view.key_signature == 'C' || staff_view.key_signature == 'Am') return svgGroup;
-
-    const keySigArray = keySignatureDef(staff_view.key_signature);
-    const clefStaffLevel = (staff_view.clef_anchor[0] || staff_view.clef_anchor) * 2;
-    const clefCentroid = clefStaffLevel + clefDef[staff_view.clef].key_signature_centroid[keySigArray[0].accidental];
-    const accidentalSpacing = staff_line_spacing;
-    const staffLevelPitchList = clefToPitchContext(staff_view);
-    keySigArray.forEach((obj, ind) => {
-        svgGroup.child.push({
-            new: 'text',
-            class: 'StaffClef-key_signature Global-musicFont',
-            id: `${staff_view.id}-key_signature-${ind}`,
-            x: x_offset + ind * accidentalSpacing,
-            y: staff_view.y - staff_line_spacing / 2 * findStaffLevelForPitchClass(obj.pitch_class, staffLevelPitchList, accidentalDef(obj.accidental), true, clefCentroid),
-            child: accidentalDef(obj.accidental).glyph
-        });
-    });
-
-    return svgGroup;
 }
 
 module.exports = {
